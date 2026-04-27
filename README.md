@@ -1,36 +1,103 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# CareerTrack Dashboard
+
+A job application tracker that helps users manage, organize, and track applications in a clean dashboard-style interface.
+
+CareerTrack Dashboard is built with Next.js, React, TypeScript, and Tailwind CSS. It focuses on a simple local workflow: users can add applications, update them in a modal, search and filter their list, and keep data saved in the browser with `localStorage`.
+
+## Live Demo
+
+Coming soon.
+
+## Screenshot
+
+Coming soon.
+
+## Features
+
+- Add, edit, and delete job applications
+- Track company, role, location, salary, job link, status, and notes
+- Status options: Saved, Applied, Interview, Offer, and Rejected
+- Search applications by company or role
+- Filter applications by status
+- Dashboard stats for total applications, applied roles, interviews, and offers
+- Modal-based editing for updating full application details
+- Duplicate detection to prevent adding the same company and role twice
+- Browser persistence using `localStorage`
+- Responsive dashboard UI built with Tailwind CSS
+
+## Tech Stack
+
+- Next.js App Router
+- React
+- TypeScript
+- Tailwind CSS
+
+## How It Works
+
+Applications are stored in React state and rendered into dashboard cards. The add form creates new applications, while the edit modal updates existing applications without leaving the page.
+
+The app saves the applications list to `localStorage`, so data stays available after refreshing the browser. This project does not use a backend or database yet.
+
+Duplicate detection checks the company and role before adding a new application. Both values are trimmed and converted to lowercase, so entries like `Google`, ` google `, and `GOOGLE` are treated as the same company.
 
 ## Getting Started
 
-First, run the development server:
+Install dependencies:
+
+```bash
+npm install
+```
+
+Run the development server:
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open the app in your browser:
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+```text
+http://localhost:3000
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Project Structure
 
-## Learn More
+```text
+src/
+  app/
+    page.tsx       Main dashboard component and application logic
+    layout.tsx     App layout
+    globals.css    Global styles
+public/            Static assets
+```
 
-To learn more about Next.js, take a look at the following resources:
+## Key Design Decisions
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+- `localStorage` is used for persistence to keep the project simple and frontend-focused.
+- Editing happens in a modal so users can update an application without losing context.
+- Duplicate detection was added to prevent accidental repeat entries for the same company and role.
+- Status badges use different colors to make application progress easier to scan.
+- The UI is responsive and uses Tailwind utility classes for consistent styling without extra dependencies.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## What I Learned
 
-## Deploy on Vercel
+- Managing form state and list updates in React
+- Building reusable state logic for adding, editing, deleting, searching, and filtering
+- Persisting client-side data with `localStorage`
+- Avoiding hydration issues when using browser-only APIs in a Next.js app
+- Using TypeScript interfaces to keep application data structured
+- Improving UI hierarchy with spacing, button styles, cards, and status badges
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## Future Improvements
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- Add user authentication
+- Store applications in a real database
+- Add sort options by date, company, or status
+- Add confirmation before deleting an application
+- Add application deadlines or reminders
+- Export applications to CSV
+- Add deployment and a live demo link
+
+## Author
+
+Built by Shabil as a portfolio project.

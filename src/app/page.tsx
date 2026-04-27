@@ -44,7 +44,17 @@ export default function Home() {
       const savedApplications = localStorage.getItem(STORAGE_KEY);
 
       if (savedApplications) {
-        setApplications(JSON.parse(savedApplications));
+        try {
+          const parsedApplications = JSON.parse(savedApplications);
+
+          if (Array.isArray(parsedApplications)) {
+            setApplications(parsedApplications);
+          } else {
+            localStorage.removeItem(STORAGE_KEY);
+          }
+        } catch {
+          localStorage.removeItem(STORAGE_KEY);
+        }
       }
 
       hasLoadedApplications.current = true;
@@ -184,7 +194,7 @@ export default function Home() {
   };
 
   return (
-    <div className="min-h-screen bg-neutral-50 px-4 py-10 sm:px-6 lg:px-8" suppressHydrationWarning>
+    <div className="min-h-screen bg-neutral-50 px-4 py-10 sm:px-6 lg:px-8">
       {/* Header */}
       <div className="mx-auto mb-10 max-w-6xl">
         <h1 className="mb-2 text-4xl font-bold text-neutral-950">

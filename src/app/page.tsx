@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 
 // TypeScript Interface for Application
 interface Application {
@@ -12,12 +12,25 @@ interface Application {
   jobLink: string;
   status: "Saved" | "Applied" | "Interview" | "Offer" | "Rejected";
   notes: string;
-  dateAdded: string;
+  createdAt: string;
 }
 
-const STORAGE_KEY = "careertrack-applications";
+const getErrorMessage = async (response: Response) => {
+  const data = await response.json().catch(() => null);
 
-const normalizeText = (value: string) => value.trim().toLowerCase();
+  if (data && typeof data.error === "string") {
+    return data.error;
+  }
+
+  return "Something went wrong. Please try again.";
+};
+
+const formatDate = (date: string) =>
+  new Date(date).toLocaleDateString(undefined, {
+    month: "numeric",
+    day: "numeric",
+    year: "numeric",
+  });
 
 export default function Home() {
   // State Management
@@ -27,7 +40,9 @@ export default function Home() {
   const [editingApplication, setEditingApplication] =
     useState<Application | null>(null);
   const [formError, setFormError] = useState("");
-  const hasLoadedApplications = useRef(false);
+  const [apiError, setApiError] = useState("");
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSaving, setIsSaving] = useState(false);
   const [formData, setFormData] = useState({
     company: "",
     role: "",
@@ -38,35 +53,37 @@ export default function Home() {
     notes: "",
   });
 
-  // Load saved applications from localStorage after hydration
+  // Load applications from the backend API after the page opens
   useEffect(() => {
-    queueMicrotask(() => {
-      const savedApplications = localStorage.getItem(STORAGE_KEY);
+    const fetchApplications = async () => {
+      try {
+        setIsLoading(true);
+        setApiError("");
 
-      if (savedApplications) {
-        try {
-          const parsedApplications = JSON.parse(savedApplications);
+        const response = await fetch("/api/applications");
 
-          if (Array.isArray(parsedApplications)) {
-            setApplications(parsedApplications);
-          } else {
-            localStorage.removeItem(STORAGE_KEY);
-          }
-        } catch {
-          localStorage.removeItem(STORAGE_KEY);
+        if (!response.ok) {
+          throw new Error(await getErrorMessage(response));
         }
-      }
 
-      hasLoadedApplications.current = true;
-    });
+        const data = (await response.json()) as {
+          applications: Application[];
+        };
+
+        setApplications(data.applications);
+      } catch (error) {
+        setApiError(
+          error instanceof Error
+            ? error.message
+            : "Could not load applications."
+        );
+      } finally {
+        setIsLoading(false);
+        }
+    };
+
+    fetchApplications();
   }, []);
-
-  // Save applications to localStorage whenever the list changes
-  useEffect(() => {
-    if (!hasLoadedApplications.current) return;
-
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(applications));
-  }, [applications]);
 
   // Handle form input changes
   const handleInputChange = (
@@ -83,7 +100,7 @@ export default function Home() {
   };
 
   // Handle add application
-  const handleAddApplication = (e: React.FormEvent) => {
+  const handleAddApplication = async (e: React.FormEvent) => {
     e.preventDefault();
 
     // Validation
@@ -92,28 +109,31 @@ export default function Home() {
       return;
     }
 
-    const isDuplicate = applications.some(
-      (application) =>
-        normalizeText(application.company) === normalizeText(formData.company) &&
-        normalizeText(application.role) === normalizeText(formData.role)
-    );
+    try {
+      setIsSaving(true);
+      setFormError("");
 
-    if (isDuplicate) {
-      setFormError("This job application already exists.");
-      return;
+      const response = await fetch("/api/applications", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(formData),
+      });
+
+      if (!response.ok) {
+        throw new Error(await getErrorMessage(response));
     }
 
-    // Create new application
-    const newApplication: Application = {
-      id: Date.now().toString(),
-      ...formData,
-      company: formData.company.trim(),
-      role: formData.role.trim(),
-      dateAdded: new Date().toLocaleDateString(),
-    };
+      const data = (await response.json()) as {
+        application: Application;
+      };
 
-    // Add to applications list
-    setApplications([newApplication, ...applications]);
+      // Add the application returned by the API to the list
+      setApplications((currentApplications) => [
+        data.application,
+        ...currentApplications,
+      ]);
 
     // Clear form
     setFormData({
@@ -125,27 +145,88 @@ export default function Home() {
       status: "Saved",
       notes: "",
     });
-    setFormError("");
+    } catch (error) {
+      setFormError(
+        error instanceof Error ? error.message : "Could not add application."
+      );
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   // Handle delete application
-  const handleDeleteApplication = (id: string) => {
-    setApplications(applications.filter((app) => app.id !== id));
+  const handleDeleteApplication = async (id: string) => {
+    try {
+      setApiError("");
+
+      const response = await fetch(`/api/applications/${id}`, {
+        method: "DELETE",
+      });
+
+      if (!response.ok) {
+        throw new Error(await getErrorMessage(response));
+      }
+
+      setApplications((currentApplications) =>
+        currentApplications.filter((app) => app.id !== id)
+      );
+    } catch (error) {
+      setApiError(
+        error instanceof Error
+          ? error.message
+          : "Could not delete application."
+      );
+    }
   };
 
   // Handle update application
-  const handleUpdateApplication = () => {
+  const handleUpdateApplication = async () => {
     if (!editingApplication) return;
+
+    try {
+      setIsSaving(true);
+      setApiError("");
+
+      const response = await fetch(
+        `/api/applications/${editingApplication.id}`,
+        {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(editingApplication),
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error(await getErrorMessage(response));
+      }
+
+      const data = (await response.json()) as {
+        application: Application;
+      };
 
     setApplications((currentApplications) =>
       currentApplications.map((application) =>
-        application.id === editingApplication.id
-          ? editingApplication
-          : application
+          application.id === data.application.id ? data.application : application
       )
     );
 
     setEditingApplication(null);
+    } catch (error) {
+      setFormError(
+        error instanceof Error
+          ? error.message
+          : "Could not update application."
+      );
+      setApiError(
+        error instanceof Error
+          ? error.message
+          : "Could not update application."
+      );
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   // Filter and search applications
@@ -370,9 +451,10 @@ export default function Home() {
               {/* Submit Button */}
               <button
                 type="submit"
+                disabled={isSaving}
                 className="w-full rounded-md bg-blue-600 py-2.5 font-semibold text-white shadow-sm transition-colors hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-200"
               >
-                Add Application
+                {isSaving ? "Adding..." : "Add Application"}
               </button>
             </form>
           </div>
@@ -422,8 +504,26 @@ export default function Home() {
             </div>
           </div>
 
+          {apiError && (
+            <p className="mb-4 rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm font-medium text-red-700">
+              {apiError}
+            </p>
+          )}
+
           {/* Applications Display */}
-          {filteredApplications.length === 0 ? (
+          {isLoading ? (
+            <div className="rounded-lg border border-dashed border-neutral-300 bg-white p-10 text-center shadow-sm">
+              <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-neutral-100 text-lg font-bold text-neutral-500">
+                CT
+              </div>
+              <h3 className="mb-2 text-xl font-semibold text-neutral-950">
+                Loading applications...
+              </h3>
+              <p className="mx-auto max-w-sm text-sm leading-6 text-neutral-600">
+                Getting your job applications from the API.
+              </p>
+            </div>
+          ) : filteredApplications.length === 0 ? (
             // Empty State
             <div className="rounded-lg border border-dashed border-neutral-300 bg-white p-10 text-center shadow-sm">
               <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-neutral-100 text-lg font-bold text-neutral-500">
@@ -459,7 +559,7 @@ export default function Home() {
                       <div className="mt-3 flex flex-wrap gap-x-4 gap-y-2 text-sm text-neutral-600">
                         {app.location && <span>📍 {app.location}</span>}
                         {app.salary && <span>💰 {app.salary}</span>}
-                        <span>📅 {app.dateAdded}</span>
+                        <span>📅 {formatDate(app.createdAt)}</span>
                       </div>
 
                       {app.notes && (
@@ -494,7 +594,10 @@ export default function Home() {
                       {/* Edit Button */}
                       <button
                         type="button"
-                        onClick={() => setEditingApplication(app)}
+                        onClick={() => {
+                          setFormError("");
+                          setEditingApplication(app);
+                        }}
                         className="rounded-md border border-neutral-300 px-3 py-1.5 text-sm font-medium text-neutral-700 transition hover:bg-neutral-100 focus:outline-none focus:ring-2 focus:ring-neutral-200"
                       >
                         Edit
@@ -504,6 +607,7 @@ export default function Home() {
                       <button
                         type="button"
                         onClick={() => handleDeleteApplication(app.id)}
+                        disabled={isSaving}
                         className="rounded-md border border-red-200 px-3 py-1.5 text-sm font-medium text-red-700 transition hover:bg-red-50 focus:outline-none focus:ring-2 focus:ring-red-100"
                       >
                         Delete
@@ -632,6 +736,12 @@ export default function Home() {
               />
             </div>
 
+            {formError && (
+              <p className="mt-4 rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm font-medium text-red-700">
+                {formError}
+              </p>
+            )}
+
             <div className="mt-6 flex justify-end gap-3">
               <button
                 type="button"
@@ -644,9 +754,10 @@ export default function Home() {
               <button
                 type="button"
                 onClick={handleUpdateApplication}
+                disabled={isSaving}
                 className="rounded-md bg-blue-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-200"
               >
-                Save Changes
+                {isSaving ? "Saving..." : "Save Changes"}
               </button>
             </div>
           </div>

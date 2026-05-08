@@ -2,7 +2,7 @@
 
 ## Overview
 
-CareerTrack Dashboard is an authenticated full-stack job application tracker for managing job opportunities, statuses, notes, and related details. It supports user-specific application management with protected API routes, persistent Supabase/PostgreSQL storage, middleware-based route protection, and deployment on Vercel.
+CareerTrack Dashboard is an authenticated full-stack job application tracker for managing job opportunities, statuses, notes, and related details. It supports user-specific application management with protected API routes, persistent Supabase/PostgreSQL storage, proxy-based route protection, and deployment on Vercel.
 
 The app is built as a production-style portfolio project using Next.js App Router, React, TypeScript, Tailwind CSS, Supabase Auth, and Next.js API Routes.
 
@@ -19,7 +19,7 @@ The app is built as a production-style portfolio project using Next.js App Route
 - Protected API routes
 - Supabase/PostgreSQL persistence
 - Responsive UI
-- Middleware-based route protection
+- Proxy-based route protection
 - Row Level Security (RLS)
 
 ## Tech Stack
@@ -34,12 +34,12 @@ The app is built as a production-style portfolio project using Next.js App Route
 
 ## Architecture
 
-CareerTrack uses a protected request/response flow. The frontend reads the active Supabase Auth session, middleware protects dashboard navigation, API routes verify access tokens, and Supabase/PostgreSQL stores application data.
+CareerTrack uses a protected request/response flow. The frontend reads the active Supabase Auth session, proxy route protection checks dashboard navigation, API routes verify access tokens, and Supabase/PostgreSQL stores application data.
 
 ```text
 Frontend UI
 -> Supabase Auth session
--> Middleware protection
+-> Proxy route protection
 -> Next.js API routes
 -> Supabase/PostgreSQL
 -> Response
@@ -59,7 +59,7 @@ After successful API responses, the React UI updates local state so the dashboar
 
 Supabase Auth handles signup, login, logout, and session persistence. The browser uses a Supabase publishable key to create the client-side auth session and retrieve the current access token.
 
-Middleware protects dashboard navigation by checking the Supabase session before allowing access to the main dashboard route. This improves the user experience by redirecting unauthenticated visitors to the auth screen.
+The Next.js proxy protects dashboard navigation by checking the Supabase session before allowing access to the main dashboard route. This improves the user experience by redirecting unauthenticated visitors to the auth screen.
 
 API routes provide the main server-side protection. Each CRUD route reads the `Authorization` header, verifies the Supabase access token, and scopes database operations by `user_id`.
 
@@ -69,7 +69,7 @@ Key handling:
 
 - `SUPABASE_SERVICE_ROLE_KEY` stays server-side only and is never imported into client components.
 - `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` is browser-safe and used for Supabase Auth in the frontend.
-- Middleware, API route checks, and RLS work together as layered protection. Middleware alone is not enough because API endpoints can be called directly.
+- Proxy route protection, API route checks, and RLS work together as layered protection. Proxy protection alone is not enough because API endpoints can be called directly.
 
 ## Database Schema
 
@@ -142,7 +142,7 @@ After adding or changing environment variables in Vercel Project Settings, redep
 - Building authenticated full-stack apps
 - Request/response architecture
 - API route protection
-- Middleware protection
+- Proxy route protection
 - User-specific data modeling
 - Supabase/PostgreSQL integration
 - Environment variable security

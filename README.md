@@ -1,29 +1,26 @@
 # CareerTrack Dashboard
 
-A job application tracker that helps users manage, organize, and track applications in a clean dashboard-style interface.
+A full-stack job application tracker for managing job applications, statuses, notes, and job details with persistent Supabase/PostgreSQL storage.
 
-CareerTrack Dashboard is built with Next.js, React, TypeScript, and Tailwind CSS. It focuses on a simple local workflow: users can add applications, update them in a modal, search and filter their list, and keep data saved in the browser with `localStorage`.
+CareerTrack Dashboard started as a frontend job application tracker and now uses Next.js API routes with Supabase/PostgreSQL for database-backed CRUD operations. The app is deployed on Vercel and uses environment variables for secure backend configuration.
 
 ## Live Demo
 
-Coming soon.
-
-## Screenshot
-
-Coming soon.
+Deployed on Vercel.
 
 ## Features
 
 - Add, edit, and delete job applications
-- Track company, role, location, salary, job link, status, and notes
-- Status options: Saved, Applied, Interview, Offer, and Rejected
-- Search applications by company or role
-- Filter applications by status
-- Dashboard stats for total applications, applied roles, interviews, and offers
-- Modal-based editing for updating full application details
-- Duplicate detection to prevent adding the same company and role twice
-- Browser persistence using `localStorage`
-- Responsive dashboard UI built with Tailwind CSS
+- Search by company or role
+- Filter by status
+- Track statuses: Saved, Applied, Interview, Offer, Rejected
+- Duplicate detection for company + role
+- Modal-based editing
+- Dashboard stats
+- Status badges
+- Persistent database storage with Supabase/PostgreSQL
+- API-based CRUD operations using Next.js API routes
+- Responsive UI with Tailwind CSS
 
 ## Tech Stack
 
@@ -31,14 +28,76 @@ Coming soon.
 - React
 - TypeScript
 - Tailwind CSS
+- Supabase
+- PostgreSQL
+- Vercel
 
 ## How It Works
 
-Applications are stored in React state and rendered into dashboard cards. The add form creates new applications, while the edit modal updates existing applications without leaving the page.
+The frontend does not communicate with Supabase directly. Instead, the React UI calls Next.js API routes, and those server-side routes communicate with Supabase/PostgreSQL.
 
-The app saves the applications list to `localStorage`, so data stays available after refreshing the browser. This project does not use a backend or database yet.
+```text
+Frontend UI -> Next.js API Routes -> Supabase/PostgreSQL -> Response -> React state update
+```
 
-Duplicate detection checks the company and role before adding a new application. Both values are trimmed and converted to lowercase, so entries like `Google`, ` google `, and `GOOGLE` are treated as the same company.
+API routes:
+
+- `GET /api/applications`: Fetches all job applications from Supabase and returns them to the frontend.
+- `POST /api/applications`: Creates a new job application after validating required fields and checking for duplicates.
+- `PUT /api/applications/:id`: Updates an existing job application by its `id`.
+- `DELETE /api/applications/:id`: Deletes an existing job application by its `id`.
+
+After each successful API response, the frontend updates React state so the dashboard reflects the latest data.
+
+## Environment Variables
+
+Create a `.env.local` file for local development:
+
+```env
+NEXT_PUBLIC_SUPABASE_URL=your_supabase_project_url
+SUPABASE_SERVICE_ROLE_KEY=your_supabase_secret_key
+```
+
+Environment variable notes:
+
+- `NEXT_PUBLIC_SUPABASE_URL` is the Supabase project URL.
+- `SUPABASE_SERVICE_ROLE_KEY` is server-only and must never be exposed in client code.
+- `.env.local` should not be committed to Git.
+- Vercel also needs these environment variables set in Project Settings.
+
+The service role key is powerful because it can access the database from trusted server-side code. In this project, it is used only inside API route logic and must not be imported into client components.
+
+## Database Schema
+
+Supabase table name: `applications`
+
+Fields:
+
+- `id`
+- `company`
+- `role`
+- `location`
+- `salary`
+- `jobLink`
+- `status`
+- `notes`
+- `createdAt`
+
+Expected schema:
+
+```sql
+create table applications (
+  id uuid primary key default gen_random_uuid(),
+  company text not null,
+  role text not null,
+  location text,
+  salary text,
+  "jobLink" text,
+  status text not null,
+  notes text,
+  "createdAt" timestamptz default now()
+);
+```
 
 ## Getting Started
 
@@ -60,43 +119,57 @@ Open the app in your browser:
 http://localhost:3000
 ```
 
+You can also test the API directly:
+
+```text
+http://localhost:3000/api/applications
+```
+
 ## Project Structure
 
 ```text
 src/
   app/
-    page.tsx       Main dashboard component and application logic
-    layout.tsx     App layout
-    globals.css    Global styles
-public/            Static assets
+    api/
+      applications/
+        route.ts          GET and POST application routes
+        [id]/
+          route.ts        PUT and DELETE application routes
+        store.ts          Shared application types and helpers
+    page.tsx              Main dashboard UI
+    layout.tsx            App layout
+    globals.css           Global styles
+  lib/
+    supabase.ts           Server-side Supabase client helper
+public/                   Static assets
 ```
 
-## Key Design Decisions
+## Deployment Notes
 
-- `localStorage` is used for persistence to keep the project simple and frontend-focused.
-- Editing happens in a modal so users can update an application without losing context.
-- Duplicate detection was added to prevent accidental repeat entries for the same company and role.
-- Status badges use different colors to make application progress easier to scan.
-- The UI is responsive and uses Tailwind utility classes for consistent styling without extra dependencies.
+- Add `NEXT_PUBLIC_SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` to Vercel Project Settings.
+- Redeploy the project after adding or changing environment variables.
+- Test `/api/applications` after deployment to confirm the API can reach Supabase.
+- Keep the service role key out of client components and public code.
 
 ## What I Learned
 
-- Managing form state and list updates in React
-- Building reusable state logic for adding, editing, deleting, searching, and filtering
-- Persisting client-side data with `localStorage`
-- Avoiding hydration issues when using browser-only APIs in a Next.js app
-- Using TypeScript interfaces to keep application data structured
-- Improving UI hierarchy with spacing, button styles, cards, and status badges
+- Building API routes in Next.js
+- Handling full CRUD flow
+- Connecting frontend to backend routes
+- Persisting data with Supabase/PostgreSQL
+- Managing environment variables securely
+- Debugging production API errors
+- Understanding request/response flow
 
 ## Future Improvements
 
-- Add user authentication
-- Store applications in a real database
-- Add sort options by date, company, or status
-- Add confirmation before deleting an application
-- Add application deadlines or reminders
-- Export applications to CSV
-- Add deployment and a live demo link
+- User authentication
+- Per-user application data
+- Confirmation modal before delete
+- Sorting by date/status/company
+- CSV export
+- Application reminders
+- AI-powered job description analysis
 
 ## Author
 

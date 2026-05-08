@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { getSupabase } from "@/lib/supabase";
+import { getAuthenticatedUser } from "./auth";
 import {
   formatApplication,
   isValidStatus,
@@ -8,9 +9,11 @@ import {
   type Application,
 } from "./store";
 
-type ApplicationRequestBody = Partial<Omit<Application, "id" | "createdAt">>;
+type ApplicationRequestBody = Partial<
+  Omit<Application, "id" | "user_id" | "createdAt">
+>;
 const applicationColumns =
-  "id, company, role, location, salary, jobLink, status, notes, createdAt";
+  "id, user_id, company, role, location, salary, jobLink, status, notes, createdAt";
 
 function getRouteErrorMessage(error: unknown, fallback: string) {
   if (process.env.NODE_ENV !== "development") {
@@ -33,12 +36,19 @@ function getRouteErrorMessage(error: unknown, fallback: string) {
   return fallback;
 }
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
+    const { user, error: authError } = await getAuthenticatedUser(request);
+
+    if (!user) {
+      return NextResponse.json({ error: authError }, { status: 401 });
+    }
+
     const supabase = getSupabase();
     const { data, error } = await supabase
       .from("applications")
       .select(applicationColumns)
+      .eq("user_id", user.id)
       .order("createdAt", { ascending: false });
 
     if (error) {
@@ -68,6 +78,12 @@ export async function GET() {
 }
 
 export async function POST(request: Request) {
+  const { user, error: authError } = await getAuthenticatedUser(request);
+
+  if (!user) {
+    return NextResponse.json({ error: authError }, { status: 401 });
+  }
+
   const supabase = getSupabase();
   const body = (await request.json()) as ApplicationRequestBody;
 
@@ -90,7 +106,8 @@ export async function POST(request: Request) {
 
   const { data: existingApplications, error: duplicateError } = await supabase
     .from("applications")
-    .select("company, role");
+    .select("company, role")
+    .eq("user_id", user.id);
 
   if (duplicateError) {
     return NextResponse.json(
@@ -115,6 +132,7 @@ export async function POST(request: Request) {
   const { data, error } = await supabase
     .from("applications")
     .insert({
+      user_id: user.id,
       company,
       role,
       location: body.location?.trim() ?? "",

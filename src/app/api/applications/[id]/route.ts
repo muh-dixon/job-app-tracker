@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { getSupabase } from "@/lib/supabase";
+import { getAuthenticatedUser } from "../auth";
 import {
   formatApplication,
   isValidStatus,
@@ -8,7 +9,9 @@ import {
   type Application,
 } from "../store";
 
-type ApplicationRequestBody = Partial<Omit<Application, "id" | "createdAt">>;
+type ApplicationRequestBody = Partial<
+  Omit<Application, "id" | "user_id" | "createdAt">
+>;
 type RouteContext = {
   params: Promise<{
     id: string;
@@ -16,6 +19,12 @@ type RouteContext = {
 };
 
 export async function PUT(request: Request, context: RouteContext) {
+  const { user, error: authError } = await getAuthenticatedUser(request);
+
+  if (!user) {
+    return NextResponse.json({ error: authError }, { status: 401 });
+  }
+
   const supabase = getSupabase();
   const { id } = await context.params;
   const body = (await request.json()) as ApplicationRequestBody;
@@ -24,6 +33,7 @@ export async function PUT(request: Request, context: RouteContext) {
     .from("applications")
     .select("*")
     .eq("id", id)
+    .eq("user_id", user.id)
     .single();
 
   if (findError || !currentApplication) {
@@ -67,7 +77,8 @@ export async function PUT(request: Request, context: RouteContext) {
 
   const { data: existingApplications, error: duplicateError } = await supabase
     .from("applications")
-    .select("id, company, role");
+    .select("id, company, role")
+    .eq("user_id", user.id);
 
   if (duplicateError) {
     return NextResponse.json(
@@ -103,6 +114,7 @@ export async function PUT(request: Request, context: RouteContext) {
       notes: updatedApplication.notes,
     })
     .eq("id", id)
+    .eq("user_id", user.id)
     .select("*")
     .single();
 
@@ -118,7 +130,13 @@ export async function PUT(request: Request, context: RouteContext) {
   });
 }
 
-export async function DELETE(_request: Request, context: RouteContext) {
+export async function DELETE(request: Request, context: RouteContext) {
+  const { user, error: authError } = await getAuthenticatedUser(request);
+
+  if (!user) {
+    return NextResponse.json({ error: authError }, { status: 401 });
+  }
+
   const supabase = getSupabase();
   const { id } = await context.params;
 
@@ -126,6 +144,7 @@ export async function DELETE(_request: Request, context: RouteContext) {
     .from("applications")
     .delete()
     .eq("id", id)
+    .eq("user_id", user.id)
     .select("id")
     .single();
 

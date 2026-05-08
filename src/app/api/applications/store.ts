@@ -10,6 +10,7 @@ export type ApplicationStatus = (typeof statusOptions)[number];
 
 export interface Application {
   id: string;
+  user_id: string;
   company: string;
   role: string;
   location: string;

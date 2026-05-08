@@ -1,10 +1,13 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { createClient } from "@/lib/supabase/client";
+import type { User } from "@supabase/supabase-js";
 
 // TypeScript Interface for Application
 interface Application {
   id: string;
+  user_id: string;
   company: string;
   role: string;
   location: string;
@@ -34,6 +37,13 @@ const formatDate = (date: string) =>
 
 export default function Home() {
   // State Management
+  const supabase = useMemo(() => createClient(), []);
+  const [user, setUser] = useState<User | null>(null);
+  const [authLoading, setAuthLoading] = useState(true);
+  const [authError, setAuthError] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [authMode, setAuthMode] = useState<"login" | "signup">("login");
   const [applications, setApplications] = useState<Application[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [filterStatus, setFilterStatus] = useState<string>("All");
@@ -53,14 +63,63 @@ export default function Home() {
     notes: "",
   });
 
-  // Load applications from the backend API after the page opens
+  const getSessionToken = useCallback(async () => {
+    const {
+      data: { session },
+    } = await supabase.auth.getSession();
+
+    if (!session?.access_token) {
+      throw new Error("You must be logged in to manage applications.");
+    }
+
+    return session.access_token;
+  }, [supabase]);
+
   useEffect(() => {
+    const checkSession = async () => {
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+
+      setUser(session?.user ?? null);
+      setAuthLoading(false);
+    };
+
+    checkSession();
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUser(session?.user ?? null);
+
+      if (!session?.user) {
+        setApplications([]);
+        setEditingApplication(null);
+        setIsLoading(false);
+      }
+    });
+
+    return () => subscription.unsubscribe();
+  }, [supabase]);
+
+  // Load applications from the backend API after a user is signed in
+  useEffect(() => {
+    if (authLoading || !user) return;
+
+    const abortController = new AbortController();
+
     const fetchApplications = async () => {
       try {
         setIsLoading(true);
         setApiError("");
 
-        const response = await fetch("/api/applications");
+        const token = await getSessionToken();
+        const response = await fetch("/api/applications", {
+          signal: abortController.signal,
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
 
         if (!response.ok) {
           throw new Error(await getErrorMessage(response));
@@ -72,18 +131,62 @@ export default function Home() {
 
         setApplications(data.applications);
       } catch (error) {
+        if (error instanceof DOMException && error.name === "AbortError") {
+          return;
+        }
+
         setApiError(
           error instanceof Error
             ? error.message
             : "Could not load applications."
         );
       } finally {
-        setIsLoading(false);
+        if (!abortController.signal.aborted) {
+          setIsLoading(false);
+        }
       }
     };
 
     fetchApplications();
-  }, []);
+
+    return () => abortController.abort();
+  }, [authLoading, getSessionToken, user]);
+
+  const handleLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setAuthError("");
+
+    const { error } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    });
+
+    if (error) {
+      setAuthError(error.message);
+    }
+  };
+
+  const handleSignup = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setAuthError("");
+
+    const { error } = await supabase.auth.signUp({
+      email,
+      password,
+    });
+
+    if (error) {
+      setAuthError(error.message);
+    }
+  };
+
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+    setUser(null);
+    setApplications([]);
+    setEditingApplication(null);
+    setIsLoading(false);
+  };
 
   // Handle form input changes
   const handleInputChange = (
@@ -113,10 +216,12 @@ export default function Home() {
       setIsSaving(true);
       setFormError("");
 
+      const token = await getSessionToken();
       const response = await fetch("/api/applications", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify(formData),
       });
@@ -159,8 +264,12 @@ export default function Home() {
     try {
       setApiError("");
 
+      const token = await getSessionToken();
       const response = await fetch(`/api/applications/${id}`, {
         method: "DELETE",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
       });
 
       if (!response.ok) {
@@ -187,12 +296,14 @@ export default function Home() {
       setIsSaving(true);
       setApiError("");
 
+      const token = await getSessionToken();
       const response = await fetch(
         `/api/applications/${editingApplication.id}`,
         {
           method: "PUT",
           headers: {
             "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
           },
           body: JSON.stringify(editingApplication),
         }
@@ -274,16 +385,134 @@ export default function Home() {
     }
   };
 
+  if (authLoading) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-neutral-50 px-4">
+        <div className="rounded-lg border border-neutral-200 bg-white p-8 text-center shadow-sm">
+          <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-blue-100 text-lg font-bold text-blue-700">
+            CT
+          </div>
+          <h1 className="text-2xl font-bold text-neutral-950">
+            Loading CareerTrack...
+          </h1>
+          <p className="mt-2 text-sm text-neutral-600">
+            Checking your sign-in status.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!user) {
+    const isLogin = authMode === "login";
+
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-neutral-50 px-4 py-10">
+        <div className="w-full max-w-md rounded-lg border border-neutral-200 bg-white p-8 shadow-sm">
+          <div className="mb-8">
+            <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-blue-100 text-lg font-bold text-blue-700">
+              CT
+            </div>
+            <h1 className="text-3xl font-bold text-neutral-950">
+              CareerTrack Dashboard
+            </h1>
+            <p className="mt-2 text-neutral-600">
+              Sign in to manage your job applications
+            </p>
+          </div>
+
+          <form
+            onSubmit={isLogin ? handleLogin : handleSignup}
+            className="space-y-4"
+          >
+            <div>
+              <label className="mb-1.5 block text-sm font-medium text-neutral-700">
+                Email
+              </label>
+              <input
+                type="email"
+                value={email}
+                onChange={(e) => {
+                  setEmail(e.target.value);
+                  setAuthError("");
+                }}
+                placeholder="you@example.com"
+                required
+                className="w-full rounded-md border border-neutral-300 bg-white px-3 py-2 text-neutral-900 placeholder:text-neutral-400 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-100"
+              />
+            </div>
+
+            <div>
+              <label className="mb-1.5 block text-sm font-medium text-neutral-700">
+                Password
+              </label>
+              <input
+                type="password"
+                value={password}
+                onChange={(e) => {
+                  setPassword(e.target.value);
+                  setAuthError("");
+                }}
+                placeholder="Enter your password"
+                required
+                className="w-full rounded-md border border-neutral-300 bg-white px-3 py-2 text-neutral-900 placeholder:text-neutral-400 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-100"
+              />
+            </div>
+
+            {authError && (
+              <p className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm font-medium text-red-700">
+                {authError}
+              </p>
+            )}
+
+            <button
+              type="submit"
+              className="w-full rounded-md bg-blue-600 py-2.5 font-semibold text-white shadow-sm transition-colors hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-200"
+            >
+              {isLogin ? "Log In" : "Create Account"}
+            </button>
+          </form>
+
+          <button
+            type="button"
+            onClick={() => {
+              setAuthMode(isLogin ? "signup" : "login");
+              setAuthError("");
+            }}
+            className="mt-5 w-full text-sm font-semibold text-blue-700 transition hover:text-blue-800 hover:underline"
+          >
+            {isLogin
+              ? "Need an account? Sign up"
+              : "Already have an account? Log in"}
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-neutral-50 px-4 py-10 sm:px-6 lg:px-8">
       {/* Header */}
-      <div className="mx-auto mb-10 max-w-6xl">
-        <h1 className="mb-2 text-4xl font-bold text-neutral-950">
-          CareerTrack Dashboard
-        </h1>
-        <p className="text-lg text-neutral-600">
-          Track and manage your job applications in one place
-        </p>
+      <div className="mx-auto mb-10 flex max-w-6xl flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+        <div>
+          <h1 className="mb-2 text-4xl font-bold text-neutral-950">
+            CareerTrack Dashboard
+          </h1>
+          <p className="text-lg text-neutral-600">
+            Track and manage your job applications in one place
+          </p>
+          <p className="mt-2 text-sm text-neutral-500">
+            Signed in as {user.email}
+          </p>
+        </div>
+
+        <button
+          type="button"
+          onClick={handleLogout}
+          className="w-fit rounded-md border border-neutral-300 bg-white px-4 py-2 text-sm font-semibold text-neutral-700 shadow-sm transition hover:bg-neutral-100 focus:outline-none focus:ring-2 focus:ring-neutral-200"
+        >
+          Log Out
+        </button>
       </div>
 
       {/* Stats Cards */}

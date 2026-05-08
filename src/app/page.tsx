@@ -35,6 +35,50 @@ const formatDate = (date: string) =>
     year: "numeric",
   });
 
+const inputClasses =
+  "w-full rounded-xl border border-white/10 bg-zinc-950/60 px-3.5 py-2.5 text-sm text-zinc-100 shadow-inner shadow-black/20 outline-none transition duration-200 placeholder:text-zinc-500 focus:border-cyan-400/70 focus:bg-zinc-950 focus:ring-4 focus:ring-cyan-400/10";
+
+const labelClasses = "mb-1.5 block text-sm font-medium text-zinc-300";
+
+const panelClasses =
+  "rounded-2xl border border-white/10 bg-zinc-900/70 shadow-2xl shadow-black/20 backdrop-blur";
+
+const primaryButtonClasses =
+  "rounded-xl bg-gradient-to-r from-blue-500 to-cyan-400 px-4 py-2.5 text-sm font-semibold text-white shadow-lg shadow-blue-950/30 transition duration-200 hover:scale-[1.01] hover:brightness-110 active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-60";
+
+const secondaryButtonClasses =
+  "rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-sm font-semibold text-zinc-200 transition duration-200 hover:-translate-y-0.5 hover:border-white/20 hover:bg-white/10 active:translate-y-0 focus:outline-none focus:ring-4 focus:ring-cyan-400/10";
+
+const dangerButtonClasses =
+  "rounded-xl border border-red-400/20 bg-red-500/10 px-3 py-1.5 text-sm font-semibold text-red-200 transition duration-200 hover:-translate-y-0.5 hover:border-red-400/40 hover:bg-red-500/15 active:translate-y-0 focus:outline-none focus:ring-4 focus:ring-red-400/10";
+
+function ApplicationSkeleton() {
+  return (
+    <div className="animate-pulse rounded-2xl border border-white/10 bg-zinc-900/70 p-5 shadow-xl shadow-black/15">
+      <div className="flex flex-col gap-5 sm:flex-row sm:items-start sm:justify-between">
+        <div className="min-w-0 flex-1">
+          <div className="h-5 w-2/3 rounded-full bg-white/10" />
+          <div className="mt-3 h-4 w-1/3 rounded-full bg-white/10" />
+
+          <div className="mt-5 flex flex-wrap gap-2">
+            <div className="h-7 w-28 rounded-full bg-white/10" />
+            <div className="h-7 w-24 rounded-full bg-white/10" />
+            <div className="h-7 w-32 rounded-full bg-white/10" />
+          </div>
+
+          <div className="mt-5 h-16 rounded-xl bg-white/10" />
+        </div>
+
+        <div className="flex gap-2 sm:flex-col sm:items-end">
+          <div className="h-7 w-20 rounded-full bg-white/10" />
+          <div className="h-9 w-16 rounded-xl bg-white/10" />
+          <div className="h-9 w-20 rounded-xl bg-white/10" />
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function Home() {
   // State Management
   const supabase = useMemo(() => createClient(), []);
@@ -51,8 +95,12 @@ export default function Home() {
     useState<Application | null>(null);
   const [formError, setFormError] = useState("");
   const [apiError, setApiError] = useState("");
-  const [isLoading, setIsLoading] = useState(true);
-  const [isSaving, setIsSaving] = useState(false);
+  const [applicationsLoading, setApplicationsLoading] = useState(true);
+  const [authActionLoading, setAuthActionLoading] = useState(false);
+  const [logoutLoading, setLogoutLoading] = useState(false);
+  const [addLoading, setAddLoading] = useState(false);
+  const [editLoading, setEditLoading] = useState(false);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
   const [formData, setFormData] = useState({
     company: "",
     role: "",
@@ -95,7 +143,7 @@ export default function Home() {
       if (!session?.user) {
         setApplications([]);
         setEditingApplication(null);
-        setIsLoading(false);
+        setApplicationsLoading(false);
       }
     });
 
@@ -110,7 +158,7 @@ export default function Home() {
 
     const fetchApplications = async () => {
       try {
-        setIsLoading(true);
+        setApplicationsLoading(true);
         setApiError("");
 
         const token = await getSessionToken();
@@ -142,7 +190,7 @@ export default function Home() {
         );
       } finally {
         if (!abortController.signal.aborted) {
-          setIsLoading(false);
+          setApplicationsLoading(false);
         }
       }
     };
@@ -154,38 +202,68 @@ export default function Home() {
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (authActionLoading) return;
+
     setAuthError("");
+    setAuthActionLoading(true);
 
-    const { error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
+    try {
+      const { error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
 
-    if (error) {
-      setAuthError(error.message);
+      if (error) {
+        setAuthError(error.message);
+      }
+    } catch (error) {
+      setAuthError(
+        error instanceof Error ? error.message : "Could not log in."
+      );
+    } finally {
+      setAuthActionLoading(false);
     }
   };
 
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (authActionLoading) return;
+
     setAuthError("");
+    setAuthActionLoading(true);
 
-    const { error } = await supabase.auth.signUp({
-      email,
-      password,
-    });
+    try {
+      const { error } = await supabase.auth.signUp({
+        email,
+        password,
+      });
 
-    if (error) {
-      setAuthError(error.message);
+      if (error) {
+        setAuthError(error.message);
+      }
+    } catch (error) {
+      setAuthError(
+        error instanceof Error ? error.message : "Could not create account."
+      );
+    } finally {
+      setAuthActionLoading(false);
     }
   };
 
   const handleLogout = async () => {
-    await supabase.auth.signOut();
-    setUser(null);
-    setApplications([]);
-    setEditingApplication(null);
-    setIsLoading(false);
+    if (logoutLoading) return;
+
+    setLogoutLoading(true);
+
+    try {
+      await supabase.auth.signOut();
+      setUser(null);
+      setApplications([]);
+      setEditingApplication(null);
+      setApplicationsLoading(false);
+    } finally {
+      setLogoutLoading(false);
+    }
   };
 
   // Handle form input changes
@@ -205,6 +283,7 @@ export default function Home() {
   // Handle add application
   const handleAddApplication = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (addLoading) return;
 
     // Validation
     if (!formData.company.trim() || !formData.role.trim()) {
@@ -213,7 +292,7 @@ export default function Home() {
     }
 
     try {
-      setIsSaving(true);
+      setAddLoading(true);
       setFormError("");
 
       const token = await getSessionToken();
@@ -255,14 +334,17 @@ export default function Home() {
         error instanceof Error ? error.message : "Could not add application."
       );
     } finally {
-      setIsSaving(false);
+      setAddLoading(false);
     }
   };
 
   // Handle delete application
   const handleDeleteApplication = async (id: string) => {
+    if (deletingId) return;
+
     try {
       setApiError("");
+      setDeletingId(id);
 
       const token = await getSessionToken();
       const response = await fetch(`/api/applications/${id}`, {
@@ -285,15 +367,17 @@ export default function Home() {
           ? error.message
           : "Could not delete application."
       );
+    } finally {
+      setDeletingId(null);
     }
   };
 
   // Handle update application
   const handleUpdateApplication = async () => {
-    if (!editingApplication) return;
+    if (!editingApplication || editLoading) return;
 
     try {
-      setIsSaving(true);
+      setEditLoading(true);
       setApiError("");
 
       const token = await getSessionToken();
@@ -336,7 +420,7 @@ export default function Home() {
           : "Could not update application."
       );
     } finally {
-      setIsSaving(false);
+      setEditLoading(false);
     }
   };
 
@@ -371,32 +455,33 @@ export default function Home() {
   const getStatusStyles = (status: string) => {
     switch (status) {
       case "Saved":
-        return "bg-neutral-200 text-neutral-700";
+        return "border border-zinc-600/50 bg-zinc-800/80 text-zinc-200";
       case "Applied":
-        return "bg-blue-100 text-blue-700";
+        return "border border-blue-400/30 bg-blue-500/15 text-blue-200";
       case "Interview":
-        return "bg-purple-100 text-purple-700";
+        return "border border-cyan-400/30 bg-cyan-400/15 text-cyan-100";
       case "Offer":
-        return "bg-green-100 text-green-700";
+        return "border border-emerald-400/30 bg-emerald-400/15 text-emerald-100";
       case "Rejected":
-        return "bg-red-100 text-red-700";
+        return "border border-red-400/30 bg-red-500/15 text-red-100";
       default:
-        return "bg-neutral-200 text-neutral-700";
+        return "border border-zinc-600/50 bg-zinc-800/80 text-zinc-200";
     }
   };
 
   if (authLoading) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-neutral-50 px-4">
-        <div className="rounded-lg border border-neutral-200 bg-white p-8 text-center shadow-sm">
-          <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-blue-100 text-lg font-bold text-blue-700">
-            CT
+      <div className="relative flex min-h-screen items-center justify-center overflow-hidden bg-neutral-950 px-4 text-zinc-100">
+        <div className="absolute left-1/2 top-0 h-80 w-80 -translate-x-1/2 rounded-full bg-cyan-400/10 blur-3xl" />
+        <div className={`${panelClasses} relative p-8 text-center`}>
+          <div className="mx-auto mb-5 flex h-14 w-14 items-center justify-center rounded-2xl bg-cyan-400/10 ring-1 ring-cyan-400/20">
+            <div className="h-6 w-6 animate-spin rounded-full border-2 border-cyan-300/30 border-t-cyan-300" />
           </div>
-          <h1 className="text-2xl font-bold text-neutral-950">
-            Loading CareerTrack...
+          <h1 className="text-2xl font-bold text-zinc-50">
+            Checking your session...
           </h1>
-          <p className="mt-2 text-sm text-neutral-600">
-            Checking your sign-in status.
+          <p className="mt-2 text-sm text-zinc-400">
+            Preparing your CareerTrack workspace.
           </p>
         </div>
       </div>
@@ -407,16 +492,21 @@ export default function Home() {
     const isLogin = authMode === "login";
 
     return (
-      <div className="flex min-h-screen items-center justify-center bg-neutral-50 px-4 py-10">
-        <div className="w-full max-w-md rounded-lg border border-neutral-200 bg-white p-8 shadow-sm">
+      <div className="relative flex min-h-screen items-center justify-center overflow-hidden bg-neutral-950 px-4 py-10 text-zinc-100">
+        <div className="absolute -left-24 top-10 h-72 w-72 rounded-full bg-blue-500/15 blur-3xl" />
+        <div className="absolute -right-24 bottom-10 h-72 w-72 rounded-full bg-cyan-400/10 blur-3xl" />
+        <div className={`${panelClasses} relative w-full max-w-md p-8`}>
           <div className="mb-8">
-            <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-blue-100 text-lg font-bold text-blue-700">
+            <div className="mb-5 flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-blue-500 to-cyan-400 text-lg font-bold text-white shadow-lg shadow-blue-950/40">
               CT
             </div>
-            <h1 className="text-3xl font-bold text-neutral-950">
+            <p className="mb-2 text-xs font-semibold uppercase tracking-[0.22em] text-cyan-300/80">
+              Career workspace
+            </p>
+            <h1 className="text-3xl font-bold text-zinc-50">
               CareerTrack Dashboard
             </h1>
-            <p className="mt-2 text-neutral-600">
+            <p className="mt-2 text-sm leading-6 text-zinc-400">
               Sign in to manage your job applications
             </p>
           </div>
@@ -426,7 +516,7 @@ export default function Home() {
             className="space-y-4"
           >
             <div>
-              <label className="mb-1.5 block text-sm font-medium text-neutral-700">
+              <label className={labelClasses}>
                 Email
               </label>
               <input
@@ -438,12 +528,12 @@ export default function Home() {
                 }}
                 placeholder="you@example.com"
                 required
-                className="w-full rounded-md border border-neutral-300 bg-white px-3 py-2 text-neutral-900 placeholder:text-neutral-400 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-100"
+                className={inputClasses}
               />
             </div>
 
             <div>
-              <label className="mb-1.5 block text-sm font-medium text-neutral-700">
+              <label className={labelClasses}>
                 Password
               </label>
               <input
@@ -455,31 +545,39 @@ export default function Home() {
                 }}
                 placeholder="Enter your password"
                 required
-                className="w-full rounded-md border border-neutral-300 bg-white px-3 py-2 text-neutral-900 placeholder:text-neutral-400 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-100"
+                className={inputClasses}
               />
             </div>
 
             {authError && (
-              <p className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm font-medium text-red-700">
+              <p className="rounded-xl border border-red-400/20 bg-red-500/10 px-3 py-2 text-sm font-medium text-red-200">
                 {authError}
               </p>
             )}
 
             <button
               type="submit"
-              className="w-full rounded-md bg-blue-600 py-2.5 font-semibold text-white shadow-sm transition-colors hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-200"
+              disabled={authActionLoading}
+              className={`${primaryButtonClasses} w-full`}
             >
-              {isLogin ? "Log In" : "Create Account"}
+              {authActionLoading
+                ? isLogin
+                  ? "Logging in..."
+                  : "Creating account..."
+                : isLogin
+                  ? "Log In"
+                  : "Create Account"}
             </button>
           </form>
 
           <button
             type="button"
+            disabled={authActionLoading}
             onClick={() => {
               setAuthMode(isLogin ? "signup" : "login");
               setAuthError("");
             }}
-            className="mt-5 w-full text-sm font-semibold text-blue-700 transition hover:text-blue-800 hover:underline"
+            className="mt-5 w-full text-sm font-semibold text-cyan-300 transition duration-200 hover:text-cyan-200 hover:underline disabled:cursor-not-allowed disabled:opacity-60"
           >
             {isLogin
               ? "Need an account? Sign up"
@@ -491,17 +589,21 @@ export default function Home() {
   }
 
   return (
-    <div className="min-h-screen bg-neutral-50 px-4 py-10 sm:px-6 lg:px-8">
+    <div className="relative isolate min-h-screen bg-neutral-950 px-4 py-8 text-zinc-100 sm:px-6 lg:px-8">
+      <div className="pointer-events-none fixed inset-0 -z-10 bg-[radial-gradient(circle_at_top_left,rgba(59,130,246,0.16),transparent_32%),radial-gradient(circle_at_top_right,rgba(34,211,238,0.12),transparent_30%),linear-gradient(180deg,#020617,#09090b_45%,#18181b)]" />
       {/* Header */}
-      <div className="mx-auto mb-10 flex max-w-6xl flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+      <div className="mx-auto mb-8 flex max-w-6xl flex-col gap-5 sm:flex-row sm:items-start sm:justify-between">
         <div>
-          <h1 className="mb-2 text-4xl font-bold text-neutral-950">
+          <p className="mb-3 text-xs font-semibold uppercase tracking-[0.24em] text-cyan-300/80">
+            Application command center
+          </p>
+          <h1 className="mb-2 text-4xl font-bold tracking-tight text-zinc-50 sm:text-5xl">
             CareerTrack Dashboard
           </h1>
-          <p className="text-lg text-neutral-600">
+          <p className="max-w-2xl text-base leading-7 text-zinc-400 sm:text-lg">
             Track and manage your job applications in one place
           </p>
-          <p className="mt-2 text-sm text-neutral-500">
+          <p className="mt-3 inline-flex rounded-full border border-white/10 bg-white/5 px-3 py-1 text-sm text-zinc-300">
             Signed in as {user.email}
           </p>
         </div>
@@ -509,62 +611,66 @@ export default function Home() {
         <button
           type="button"
           onClick={handleLogout}
-          className="w-fit rounded-md border border-neutral-300 bg-white px-4 py-2 text-sm font-semibold text-neutral-700 shadow-sm transition hover:bg-neutral-100 focus:outline-none focus:ring-2 focus:ring-neutral-200"
+          disabled={logoutLoading}
+          className={`${secondaryButtonClasses} w-fit`}
         >
-          Log Out
+          {logoutLoading ? "Logging out..." : "Log Out"}
         </button>
       </div>
 
       {/* Stats Cards */}
-      <div className="mx-auto mb-10 grid max-w-6xl grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="mx-auto mb-8 grid max-w-6xl grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {/* Total Applications */}
-        <div className="rounded-lg border border-neutral-200 bg-white p-6 shadow-sm">
-          <p className="text-sm font-medium text-neutral-500">
+        <div className={`${panelClasses} p-5 transition duration-200 hover:-translate-y-1 hover:border-cyan-400/30 hover:shadow-cyan-950/20`}>
+          <p className="text-sm font-medium text-zinc-400">
             Total Applications
           </p>
-          <p className="mt-3 text-3xl font-bold text-neutral-950">
+          <p className="mt-3 text-3xl font-bold text-zinc-50">
             {stats.total}
           </p>
         </div>
 
         {/* Applied Count */}
-        <div className="rounded-lg border border-blue-100 bg-white p-6 shadow-sm">
-          <p className="text-sm font-medium text-neutral-500">Applied</p>
-          <p className="mt-3 text-3xl font-bold text-blue-700">
+        <div className={`${panelClasses} p-5 transition duration-200 hover:-translate-y-1 hover:border-blue-400/30 hover:shadow-blue-950/20`}>
+          <p className="text-sm font-medium text-zinc-400">Applied</p>
+          <p className="mt-3 text-3xl font-bold text-blue-300">
             {stats.applied}
           </p>
         </div>
 
         {/* Interview Count */}
-        <div className="rounded-lg border border-purple-100 bg-white p-6 shadow-sm">
-          <p className="text-sm font-medium text-neutral-500">Interviews</p>
-          <p className="mt-3 text-3xl font-bold text-purple-700">
+        <div className={`${panelClasses} p-5 transition duration-200 hover:-translate-y-1 hover:border-cyan-400/30 hover:shadow-cyan-950/20`}>
+          <p className="text-sm font-medium text-zinc-400">Interviews</p>
+          <p className="mt-3 text-3xl font-bold text-cyan-300">
             {stats.interview}
           </p>
         </div>
 
         {/* Offer Count */}
-        <div className="rounded-lg border border-green-100 bg-white p-6 shadow-sm">
-          <p className="text-sm font-medium text-neutral-500">Offers</p>
-          <p className="mt-3 text-3xl font-bold text-green-700">
+        <div className={`${panelClasses} p-5 transition duration-200 hover:-translate-y-1 hover:border-emerald-400/30 hover:shadow-emerald-950/20`}>
+          <p className="text-sm font-medium text-zinc-400">Offers</p>
+          <p className="mt-3 text-3xl font-bold text-emerald-300">
             {stats.offer}
           </p>
         </div>
       </div>
 
       {/* Main Content */}
-      <div className="mx-auto grid max-w-6xl grid-cols-1 gap-8 lg:grid-cols-3">
+      <div className="mx-auto grid max-w-6xl grid-cols-1 gap-6 lg:grid-cols-3">
         {/* Add Application Form */}
         <div className="lg:col-span-1">
-          <div className="sticky top-8 rounded-lg border border-neutral-200 bg-white p-6 shadow-sm">
-            <h2 className="mb-6 text-2xl font-bold text-neutral-950">
+          <div className={`${panelClasses} sticky top-8 p-6`}>
+            <h2 className="mb-1 text-2xl font-bold text-zinc-50">
               Add Application
             </h2>
+            <p className="mb-6 text-sm leading-6 text-zinc-400">
+              Capture a role, keep context, and move it through your pipeline.
+            </p>
 
             <form onSubmit={handleAddApplication} className="space-y-4">
               {/* Company */}
               <div>
-                <label className="mb-1.5 block text-sm font-medium text-neutral-700">
+                <label className={labelClasses}>
                   Company *
                 </label>
                 <input
@@ -573,13 +679,13 @@ export default function Home() {
                   value={formData.company}
                   onChange={handleInputChange}
                   placeholder="e.g. Google"
-                  className="w-full rounded-md border border-neutral-300 bg-white px-3 py-2 text-neutral-900 placeholder:text-neutral-400 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-100"
+                  className={inputClasses}
                 />
               </div>
 
               {/* Role */}
               <div>
-                <label className="mb-1.5 block text-sm font-medium text-neutral-700">
+                <label className={labelClasses}>
                   Role *
                 </label>
                 <input
@@ -588,13 +694,13 @@ export default function Home() {
                   value={formData.role}
                   onChange={handleInputChange}
                   placeholder="e.g. Frontend Developer"
-                  className="w-full rounded-md border border-neutral-300 bg-white px-3 py-2 text-neutral-900 placeholder:text-neutral-400 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-100"
+                  className={inputClasses}
                 />
               </div>
 
               {/* Location */}
               <div>
-                <label className="mb-1.5 block text-sm font-medium text-neutral-700">
+                <label className={labelClasses}>
                   Location
                 </label>
                 <input
@@ -603,13 +709,13 @@ export default function Home() {
                   value={formData.location}
                   onChange={handleInputChange}
                   placeholder="e.g. San Francisco, CA"
-                  className="w-full rounded-md border border-neutral-300 bg-white px-3 py-2 text-neutral-900 placeholder:text-neutral-400 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-100"
+                  className={inputClasses}
                 />
               </div>
 
               {/* Salary */}
               <div>
-                <label className="mb-1.5 block text-sm font-medium text-neutral-700">
+                <label className={labelClasses}>
                   Salary
                 </label>
                 <input
@@ -618,13 +724,13 @@ export default function Home() {
                   value={formData.salary}
                   onChange={handleInputChange}
                   placeholder="e.g. $120k - $150k"
-                  className="w-full rounded-md border border-neutral-300 bg-white px-3 py-2 text-neutral-900 placeholder:text-neutral-400 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-100"
+                  className={inputClasses}
                 />
               </div>
 
               {/* Job Link */}
               <div>
-                <label className="mb-1.5 block text-sm font-medium text-neutral-700">
+                <label className={labelClasses}>
                   Job Link
                 </label>
                 <input
@@ -633,20 +739,20 @@ export default function Home() {
                   value={formData.jobLink}
                   onChange={handleInputChange}
                   placeholder="https://..."
-                  className="w-full rounded-md border border-neutral-300 bg-white px-3 py-2 text-neutral-900 placeholder:text-neutral-400 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-100"
+                  className={inputClasses}
                 />
               </div>
 
               {/* Status */}
               <div>
-                <label className="mb-1.5 block text-sm font-medium text-neutral-700">
+                <label className={labelClasses}>
                   Status
                 </label>
                 <select
                   name="status"
                   value={formData.status}
                   onChange={handleInputChange}
-                  className="w-full rounded-md border border-neutral-300 bg-white px-3 py-2 text-neutral-900 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-100"
+                  className={inputClasses}
                 >
                   {statusOptions.map((status) => (
                     <option key={status} value={status}>
@@ -658,7 +764,7 @@ export default function Home() {
 
               {/* Notes */}
               <div>
-                <label className="mb-1.5 block text-sm font-medium text-neutral-700">
+                <label className={labelClasses}>
                   Notes
                 </label>
                 <textarea
@@ -667,12 +773,12 @@ export default function Home() {
                   onChange={handleInputChange}
                   placeholder="Add any additional notes..."
                   rows={3}
-                  className="w-full rounded-md border border-neutral-300 bg-white px-3 py-2 text-neutral-900 placeholder:text-neutral-400 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-100"
+                  className={inputClasses}
                 />
               </div>
 
               {formError && (
-                <p className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm font-medium text-red-700">
+                <p className="rounded-xl border border-red-400/20 bg-red-500/10 px-3 py-2 text-sm font-medium text-red-200">
                   {formError}
                 </p>
               )}
@@ -680,10 +786,10 @@ export default function Home() {
               {/* Submit Button */}
               <button
                 type="submit"
-                disabled={isSaving}
-                className="w-full rounded-md bg-blue-600 py-2.5 font-semibold text-white shadow-sm transition-colors hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-200"
+                disabled={addLoading}
+                className={`${primaryButtonClasses} w-full`}
               >
-                {isSaving ? "Adding..." : "Add Application"}
+                {addLoading ? "Adding..." : "Add Application"}
               </button>
             </form>
           </div>
@@ -692,15 +798,18 @@ export default function Home() {
         {/* Applications List */}
         <div className="lg:col-span-2">
           {/* Search and Filter */}
-          <div className="mb-6 rounded-lg border border-neutral-200 bg-white p-6 shadow-sm">
-            <h2 className="mb-4 text-2xl font-bold text-neutral-950">
+          <div className={`${panelClasses} mb-6 p-6`}>
+            <h2 className="mb-2 text-2xl font-bold text-zinc-50">
               Your Applications
             </h2>
+            <p className="mb-5 text-sm leading-6 text-zinc-400">
+              Search, filter, and update your active opportunities.
+            </p>
 
-            <div className="space-y-4">
+            <div className="grid gap-4 sm:grid-cols-2">
               {/* Search Box */}
               <div>
-                <label className="mb-1.5 block text-sm font-medium text-neutral-700">
+                <label className={labelClasses}>
                   Search
                 </label>
                 <input
@@ -708,19 +817,19 @@ export default function Home() {
                   placeholder="Search by company or role..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="w-full rounded-md border border-neutral-300 bg-white px-3 py-2 text-neutral-900 placeholder:text-neutral-400 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-100"
+                  className={inputClasses}
                 />
               </div>
 
               {/* Status Filter */}
               <div>
-                <label className="mb-1.5 block text-sm font-medium text-neutral-700">
+                <label className={labelClasses}>
                   Filter by Status
                 </label>
                 <select
                   value={filterStatus}
                   onChange={(e) => setFilterStatus(e.target.value)}
-                  className="w-full rounded-md border border-neutral-300 bg-white px-3 py-2 text-neutral-900 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-100"
+                  className={inputClasses}
                 >
                   <option value="All">All Statuses</option>
                   {statusOptions.map((status) => (
@@ -734,34 +843,28 @@ export default function Home() {
           </div>
 
           {apiError && (
-            <p className="mb-4 rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm font-medium text-red-700">
+            <p className="mb-4 rounded-xl border border-red-400/20 bg-red-500/10 px-3 py-2 text-sm font-medium text-red-200">
               {apiError}
             </p>
           )}
 
           {/* Applications Display */}
-          {isLoading ? (
-            <div className="rounded-lg border border-dashed border-neutral-300 bg-white p-10 text-center shadow-sm">
-              <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-neutral-100 text-lg font-bold text-neutral-500">
-                CT
-              </div>
-              <h3 className="mb-2 text-xl font-semibold text-neutral-950">
-                Loading applications...
-              </h3>
-              <p className="mx-auto max-w-sm text-sm leading-6 text-neutral-600">
-                Getting your job applications from the API.
-              </p>
+          {applicationsLoading ? (
+            <div className="space-y-4">
+              <ApplicationSkeleton />
+              <ApplicationSkeleton />
+              <ApplicationSkeleton />
             </div>
           ) : filteredApplications.length === 0 ? (
             // Empty State
-            <div className="rounded-lg border border-dashed border-neutral-300 bg-white p-10 text-center shadow-sm">
-              <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-neutral-100 text-lg font-bold text-neutral-500">
+            <div className={`${panelClasses} border-dashed border-white/15 p-10 text-center`}>
+              <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-2xl bg-white/5 text-lg font-bold text-zinc-300">
                 CT
               </div>
-              <h3 className="mb-2 text-xl font-semibold text-neutral-950">
+              <h3 className="mb-2 text-xl font-semibold text-zinc-50">
                 No applications yet
               </h3>
-              <p className="mx-auto max-w-sm text-sm leading-6 text-neutral-600">
+              <p className="mx-auto max-w-sm text-sm leading-6 text-zinc-400">
                 {applications.length === 0
                   ? "Start by adding your first job application!"
                   : "No applications match your search or filter."}
@@ -773,27 +876,38 @@ export default function Home() {
               {filteredApplications.map((app) => (
                 <div
                   key={app.id}
-                  className="rounded-lg border border-neutral-200 bg-white p-5 shadow-sm transition-shadow hover:shadow-md"
+                  className="rounded-2xl border border-white/10 bg-zinc-900/70 p-5 shadow-xl shadow-black/15 backdrop-blur transition duration-200 hover:-translate-y-1 hover:border-cyan-400/25 hover:bg-zinc-900 hover:shadow-cyan-950/20"
                 >
                   <div className="flex flex-col gap-5 sm:flex-row sm:items-start sm:justify-between">
                     {/* Application Info */}
                     <div className="min-w-0 flex-1">
-                      <h3 className="text-lg font-bold text-neutral-950">
+                      <h3 className="text-xl font-bold text-zinc-50">
                         {app.role}
                       </h3>
-                      <p className="mt-1 font-medium text-neutral-600">
+                      <p className="mt-1 font-medium text-zinc-300">
                         {app.company}
                       </p>
 
-                      <div className="mt-3 flex flex-wrap gap-x-4 gap-y-2 text-sm text-neutral-600">
-                        {app.location && <span>📍 {app.location}</span>}
-                        {app.salary && <span>💰 {app.salary}</span>}
-                        <span>📅 {formatDate(app.createdAt)}</span>
+                      <div className="mt-4 flex flex-wrap gap-2 text-xs font-medium text-zinc-400">
+                        {app.location && (
+                          <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1">
+                            Location: {app.location}
+                          </span>
+                        )}
+                        {app.salary && (
+                          <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1">
+                            Salary: {app.salary}
+                          </span>
+                        )}
+                        <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1">
+                          Added: {formatDate(app.createdAt)}
+                        </span>
                       </div>
 
                       {app.notes && (
-                        <p className="mt-4 rounded-md bg-neutral-50 p-3 text-sm leading-6 text-neutral-700">
-                          <strong>Notes:</strong> {app.notes}
+                        <p className="mt-4 rounded-xl border border-white/10 bg-zinc-950/50 p-3 text-sm leading-6 text-zinc-300">
+                          <strong className="text-zinc-100">Notes:</strong>{" "}
+                          {app.notes}
                         </p>
                       )}
 
@@ -802,9 +916,9 @@ export default function Home() {
                           href={app.jobLink}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="mt-4 inline-block text-sm font-semibold text-blue-700 hover:text-blue-800 hover:underline"
+                          className="mt-4 inline-block text-sm font-semibold text-cyan-300 transition duration-200 hover:text-cyan-200 hover:underline"
                         >
-                          View Job Posting →
+                          View Job Posting
                         </a>
                       )}
                     </div>
@@ -813,7 +927,7 @@ export default function Home() {
                     <div className="flex flex-row items-center gap-2 sm:flex-col sm:items-end">
                       {/* Status Badge */}
                       <span
-                        className={`rounded-full px-3 py-1 text-xs font-bold leading-5 ${getStatusStyles(
+                        className={`rounded-full px-3 py-1 text-xs font-bold leading-5 shadow-sm ${getStatusStyles(
                           app.status
                         )}`}
                       >
@@ -827,7 +941,7 @@ export default function Home() {
                           setFormError("");
                           setEditingApplication(app);
                         }}
-                        className="rounded-md border border-neutral-300 px-3 py-1.5 text-sm font-medium text-neutral-700 transition hover:bg-neutral-100 focus:outline-none focus:ring-2 focus:ring-neutral-200"
+                        className={secondaryButtonClasses}
                       >
                         Edit
                       </button>
@@ -836,10 +950,10 @@ export default function Home() {
                       <button
                         type="button"
                         onClick={() => handleDeleteApplication(app.id)}
-                        disabled={isSaving}
-                        className="rounded-md border border-red-200 px-3 py-1.5 text-sm font-medium text-red-700 transition hover:bg-red-50 focus:outline-none focus:ring-2 focus:ring-red-100"
+                        disabled={deletingId === app.id}
+                        className={dangerButtonClasses}
                       >
-                        Delete
+                        {deletingId === app.id ? "Deleting..." : "Delete"}
                       </button>
                     </div>
                   </div>
@@ -851,14 +965,14 @@ export default function Home() {
       </div>
 
       {editingApplication && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4 py-6">
-          <div className="max-h-full w-full max-w-2xl overflow-y-auto rounded-lg bg-white p-6 shadow-xl">
+        <div className="fixed inset-0 z-50 flex animate-[fadeIn_160ms_ease-out] items-center justify-center bg-black/70 px-4 py-6 backdrop-blur-md">
+          <div className="max-h-full w-full max-w-2xl animate-[modalIn_180ms_ease-out] overflow-y-auto rounded-2xl border border-white/10 bg-zinc-900 p-6 shadow-2xl shadow-black/50">
             <div className="mb-5 flex items-start justify-between gap-4">
               <div>
-                <h2 className="text-xl font-bold text-neutral-950">
+                <h2 className="text-xl font-bold text-zinc-50">
                   Edit Application
                 </h2>
-                <p className="mt-1 text-sm text-neutral-600">
+                <p className="mt-1 text-sm text-zinc-400">
                   Update the details for this job application.
                 </p>
               </div>
@@ -866,7 +980,7 @@ export default function Home() {
               <button
                 type="button"
                 onClick={() => setEditingApplication(null)}
-                className="rounded-md px-2 py-1 text-neutral-500 transition hover:bg-neutral-100 hover:text-neutral-900 focus:outline-none focus:ring-2 focus:ring-neutral-200"
+                className="rounded-xl border border-white/10 px-3 py-1.5 text-zinc-400 transition duration-200 hover:bg-white/10 hover:text-zinc-100 focus:outline-none focus:ring-4 focus:ring-cyan-400/10"
                 aria-label="Close edit modal"
               >
                 X
@@ -882,7 +996,7 @@ export default function Home() {
                     company: e.target.value,
                   })
                 }
-                className="rounded-md border border-neutral-300 bg-white px-3 py-2 text-neutral-900 placeholder:text-neutral-400 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-100"
+                className={inputClasses}
                 placeholder="Company"
               />
 
@@ -894,7 +1008,7 @@ export default function Home() {
                     role: e.target.value,
                   })
                 }
-                className="rounded-md border border-neutral-300 bg-white px-3 py-2 text-neutral-900 placeholder:text-neutral-400 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-100"
+                className={inputClasses}
                 placeholder="Role"
               />
 
@@ -906,7 +1020,7 @@ export default function Home() {
                     location: e.target.value,
                   })
                 }
-                className="rounded-md border border-neutral-300 bg-white px-3 py-2 text-neutral-900 placeholder:text-neutral-400 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-100"
+                className={inputClasses}
                 placeholder="Location"
               />
 
@@ -918,7 +1032,7 @@ export default function Home() {
                     salary: e.target.value,
                   })
                 }
-                className="rounded-md border border-neutral-300 bg-white px-3 py-2 text-neutral-900 placeholder:text-neutral-400 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-100"
+                className={inputClasses}
                 placeholder="Salary"
               />
 
@@ -931,7 +1045,7 @@ export default function Home() {
                     jobLink: e.target.value,
                   })
                 }
-                className="rounded-md border border-neutral-300 bg-white px-3 py-2 text-neutral-900 placeholder:text-neutral-400 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-100 sm:col-span-2"
+                className={`${inputClasses} sm:col-span-2`}
                 placeholder="Job Link"
               />
 
@@ -943,7 +1057,7 @@ export default function Home() {
                     status: e.target.value as Application["status"],
                   })
                 }
-                className="rounded-md border border-neutral-300 bg-white px-3 py-2 text-neutral-900 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-100"
+                className={inputClasses}
               >
                 {statusOptions.map((status) => (
                   <option key={status} value={status}>
@@ -960,13 +1074,13 @@ export default function Home() {
                     notes: e.target.value,
                   })
                 }
-                className="min-h-28 rounded-md border border-neutral-300 bg-white px-3 py-2 text-neutral-900 placeholder:text-neutral-400 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-100 sm:col-span-2"
+                className={`${inputClasses} min-h-28 sm:col-span-2`}
                 placeholder="Notes"
               />
             </div>
 
             {formError && (
-              <p className="mt-4 rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm font-medium text-red-700">
+              <p className="mt-4 rounded-xl border border-red-400/20 bg-red-500/10 px-3 py-2 text-sm font-medium text-red-200">
                 {formError}
               </p>
             )}
@@ -975,7 +1089,7 @@ export default function Home() {
               <button
                 type="button"
                 onClick={() => setEditingApplication(null)}
-                className="rounded-md border border-neutral-300 px-4 py-2 text-sm font-semibold text-neutral-700 transition hover:bg-neutral-100 focus:outline-none focus:ring-2 focus:ring-neutral-200"
+                className={secondaryButtonClasses}
               >
                 Cancel
               </button>
@@ -983,10 +1097,10 @@ export default function Home() {
               <button
                 type="button"
                 onClick={handleUpdateApplication}
-                disabled={isSaving}
-                className="rounded-md bg-blue-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-200"
+                disabled={editLoading}
+                className={primaryButtonClasses}
               >
-                {isSaving ? "Saving..." : "Save Changes"}
+                {editLoading ? "Saving..." : "Save Changes"}
               </button>
             </div>
           </div>
@@ -995,3 +1109,4 @@ export default function Home() {
     </div>
   );
 }
+

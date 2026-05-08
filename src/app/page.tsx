@@ -79,7 +79,7 @@ export default function Home() {
         );
       } finally {
         setIsLoading(false);
-        }
+      }
     };
 
     fetchApplications();
@@ -123,7 +123,7 @@ export default function Home() {
 
       if (!response.ok) {
         throw new Error(await getErrorMessage(response));
-    }
+      }
 
       const data = (await response.json()) as {
         application: Application;
@@ -135,16 +135,16 @@ export default function Home() {
         ...currentApplications,
       ]);
 
-    // Clear form
-    setFormData({
-      company: "",
-      role: "",
-      location: "",
-      salary: "",
-      jobLink: "",
-      status: "Saved",
-      notes: "",
-    });
+      // Clear form
+      setFormData({
+        company: "",
+        role: "",
+        location: "",
+        salary: "",
+        jobLink: "",
+        status: "Saved",
+        notes: "",
+      });
     } catch (error) {
       setFormError(
         error instanceof Error ? error.message : "Could not add application."
@@ -206,13 +206,13 @@ export default function Home() {
         application: Application;
       };
 
-    setApplications((currentApplications) =>
-      currentApplications.map((application) =>
+      setApplications((currentApplications) =>
+        currentApplications.map((application) =>
           application.id === data.application.id ? data.application : application
-      )
-    );
+        )
+      );
 
-    setEditingApplication(null);
+      setEditingApplication(null);
     } catch (error) {
       setFormError(
         error instanceof Error

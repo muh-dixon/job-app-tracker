@@ -1,26 +1,45 @@
 # CareerTrack Dashboard
 
-## Overview
+CareerTrack Dashboard is an authenticated full-stack job application tracker for job seekers who want a simple way to manage roles, statuses, notes, and job links during a search. It solves the problem of scattered job search tracking by combining a protected Next.js dashboard with Supabase Auth, PostgreSQL persistence, protected API routes, Tailwind CSS, and Row Level Security.
 
-CareerTrack Dashboard is an authenticated full-stack job application tracker for managing job opportunities, statuses, notes, and related details. It supports user-specific application management with protected API routes, persistent Supabase/PostgreSQL storage, proxy-based route protection, and deployment on Vercel.
+Live Demo: https://job-app-tracker-aar6em2ac-shabils-projects-6e585193.vercel.app/?auth=login
 
-The app is built as a production-style portfolio project using Next.js App Router, React, TypeScript, Tailwind CSS, Supabase Auth, and Next.js API Routes.
+Demo Video: [careertrack-demo.mp4](public/demo/careertrack-demo.mp4)
+
+GitHub: https://github.com/muh-dixon/job-app-tracker
+
+## Short Description
+
+CareerTrack lets authenticated users create, update, delete, search, and filter job applications from a single dashboard. Each user's application data is scoped to their Supabase account and protected through API authentication checks and database-level RLS policies.
+
+## Screenshots
+
+### Login
+
+![CareerTrack login screen](public/demo/careertrack-login.png)
+
+### Empty Dashboard
+
+![CareerTrack empty dashboard](public/demo/careertrack-dashboard-empty.png)
+
+### Dashboard With Application
+
+![CareerTrack dashboard with an application card](public/demo/careertrack-dashboard-application.png)
 
 ## Features
 
-- User authentication with Supabase Auth
-- Persistent login sessions
-- Protected dashboard routes
-- Add, edit, and delete applications
-- Search and filter applications
-- Duplicate detection scoped per user
-- Dashboard statistics
-- Modal editing workflow
-- Protected API routes
-- Supabase/PostgreSQL persistence
-- Responsive UI
-- Proxy-based route protection
-- Row Level Security (RLS)
+- Email/password authentication with Supabase Auth
+- Persistent authenticated sessions
+- Protected dashboard access
+- Create, read, update, and delete job applications
+- Track company, role, location, salary, job link, status, and notes
+- Search applications by company or role
+- Filter applications by status
+- Dashboard stats for total applications, applied roles, interviews, and offers
+- Duplicate application checks scoped to the authenticated user
+- Protected Next.js API routes
+- PostgreSQL persistence through Supabase
+- Row Level Security for user-owned application rows
 
 ## Tech Stack
 
@@ -29,64 +48,38 @@ The app is built as a production-style portfolio project using Next.js App Route
 - TypeScript
 - Tailwind CSS
 - Supabase Auth
-- Supabase/PostgreSQL
+- Supabase PostgreSQL
+- Next.js API Routes
 - Vercel
 
-## Architecture
+## Architecture / How It Works
 
-CareerTrack uses a protected request/response flow. The frontend reads the active Supabase Auth session, proxy route protection checks dashboard navigation, API routes verify access tokens, and Supabase/PostgreSQL stores application data.
+The app uses Supabase Auth for user sessions and Next.js API routes for server-side CRUD operations. The browser retrieves the active Supabase access token and sends it with each application request. API routes verify the token, identify the authenticated user, and scope database queries by `user_id`.
 
 ```text
-Frontend UI
--> Supabase Auth session
--> Proxy route protection
--> Next.js API routes
--> Supabase/PostgreSQL
--> Response
--> React state update
+User signs in
+-> Supabase Auth creates a session
+-> Dashboard requests application data
+-> API route validates the access token
+-> Supabase/PostgreSQL queries are scoped by user_id
+-> RLS policies enforce row ownership
+-> React state updates the dashboard
 ```
 
-API routes:
+Main API routes:
 
-- `GET /api/applications`: Verifies the access token, selects only applications where `user_id` matches the authenticated user, and returns the user's applications ordered by newest first.
-- `POST /api/applications`: Verifies the access token, validates required fields, checks for duplicate company/role pairs for that user, inserts a new application with `user_id`, and returns the created row.
-- `PUT /api/applications/:id`: Verifies the access token, confirms the application belongs to the authenticated user, validates updates, checks duplicates for that user, and returns the updated row.
-- `DELETE /api/applications/:id`: Verifies the access token and deletes the application only when both `id` and `user_id` match.
+- `GET /api/applications` returns applications owned by the authenticated user.
+- `POST /api/applications` creates a new application for the authenticated user.
+- `PUT /api/applications/:id` updates an application only when it belongs to the authenticated user.
+- `DELETE /api/applications/:id` deletes an application only when both `id` and `user_id` match.
 
-After successful API responses, the React UI updates local state so the dashboard reflects the latest data without a full page reload.
+Security layers:
 
-## Authentication & Security
-
-Supabase Auth handles signup, login, logout, and session persistence. The browser uses a Supabase publishable key to create the client-side auth session and retrieve the current access token.
-
-The Next.js proxy protects dashboard navigation by checking the Supabase session before allowing access to the main dashboard route. This improves the user experience by redirecting unauthenticated visitors to the auth screen.
-
-API routes provide the main server-side protection. Each CRUD route reads the `Authorization` header, verifies the Supabase access token, and scopes database operations by `user_id`.
-
-The `applications` table also uses Row Level Security policies. RLS protects rows at the database level by allowing authenticated users to select, insert, update, and delete only rows where `auth.uid()` matches `user_id`.
-
-Key handling:
-
-- `SUPABASE_SERVICE_ROLE_KEY` stays server-side only and is never imported into client components.
-- `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` is browser-safe and used for Supabase Auth in the frontend.
-- Proxy route protection, API route checks, and RLS work together as layered protection. Proxy protection alone is not enough because API endpoints can be called directly.
-
-## Database Schema
-
-Table: `applications`
-
-| Column | Description |
-| --- | --- |
-| `id` | Unique application id |
-| `user_id` | Supabase Auth user id that owns the application |
-| `company` | Company name |
-| `role` | Job title or role |
-| `location` | Job location |
-| `salary` | Salary range or compensation notes |
-| `jobLink` | Link to the job posting |
-| `status` | Application status: Saved, Applied, Interview, Offer, or Rejected |
-| `notes` | Additional notes |
-| `createdAt` | Timestamp for when the application was created |
+- Supabase Auth manages signup, login, logout, and sessions.
+- Next.js route protection redirects unauthenticated users away from the dashboard.
+- API routes validate bearer tokens before database operations.
+- Row Level Security protects application rows at the database level.
+- The Supabase service role key is used only on the server.
 
 ## Environment Variables
 
@@ -98,12 +91,12 @@ NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=your_supabase_publishable_key
 SUPABASE_SERVICE_ROLE_KEY=your_supabase_service_role_key
 ```
 
-Environment variable notes:
+Notes:
 
-- `NEXT_PUBLIC_SUPABASE_URL` is public-safe and points to the Supabase project.
-- `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` is public-safe and can be used by browser code.
-- `SUPABASE_SERVICE_ROLE_KEY` is server-only and must never be exposed to the browser.
-- `.env.local` should not be committed to Git.
+- `NEXT_PUBLIC_SUPABASE_URL` points the app to the Supabase project.
+- `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` is used by browser code for Supabase Auth.
+- `SUPABASE_SERVICE_ROLE_KEY` must stay server-side and should never be exposed in client code.
+- `.env.local` should not be committed.
 
 ## Getting Started
 
@@ -119,43 +112,32 @@ Run the development server:
 npm run dev
 ```
 
-Open the app:
+Open the local app:
 
 ```text
 http://localhost:3000
 ```
 
-## Deployment
+Build for production:
 
-CareerTrack Dashboard is deployed on Vercel.
-
-Required Vercel environment variables:
-
-- `NEXT_PUBLIC_SUPABASE_URL`
-- `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`
-- `SUPABASE_SERVICE_ROLE_KEY`
-
-After adding or changing environment variables in Vercel Project Settings, redeploy the project so the new values are available to the app.
+```bash
+npm run build
+```
 
 ## What I Learned
 
-- Building authenticated full-stack apps
-- Request/response architecture
-- API route protection
-- Proxy route protection
-- User-specific data modeling
-- Supabase/PostgreSQL integration
-- Environment variable security
-- Auth session management
-- CRUD architecture
-- Deployment and debugging
-- Layered security concepts
+- Building authenticated full-stack features with Next.js and Supabase
+- Protecting API routes with bearer token validation
+- Modeling user-owned data with PostgreSQL and `user_id`
+- Applying Row Level Security as a database-level safety layer
+- Managing client-side auth state and server-side data access together
+- Deploying a full-stack Next.js application with environment variables on Vercel
 
 ## Future Improvements
 
-- CSV export
-- Sorting options
-- Reminders and deadlines
-- AI-powered job insights
-- Analytics dashboard
-- Email notifications
+- Add screenshot assets to the README
+- Add application sorting by date, company, and status
+- Add reminders or follow-up dates
+- Add CSV export for saved applications
+- Add richer analytics for pipeline progress
+- Add automated tests for API route behavior

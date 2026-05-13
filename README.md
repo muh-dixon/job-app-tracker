@@ -4,9 +4,11 @@ CareerTrack Dashboard is an authenticated full-stack job application tracker for
 
 Live Demo: https://job-app-tracker-aar6em2ac-shabils-projects-6e585193.vercel.app/?auth=login
 
-Demo Video: [careertrack-demo.mp4](public/demo/careertrack-demo.mp4)
-
 GitHub: https://github.com/muh-dixon/job-app-tracker
+
+## Demo
+
+![CareerTrack demo](public/demo/careertrack-demo.gif)
 
 ## Short Description
 

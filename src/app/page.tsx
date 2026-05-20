@@ -52,6 +52,8 @@ const secondaryButtonClasses =
 const dangerButtonClasses =
   "rounded-xl border border-red-400/20 bg-red-500/10 px-3 py-1.5 text-sm font-semibold text-red-200 transition duration-200 hover:-translate-y-0.5 hover:border-red-400/40 hover:bg-red-500/15 active:translate-y-0 focus:outline-none focus:ring-4 focus:ring-red-400/10";
 
+const applicationResultsClasses = "min-h-[26rem] space-y-4";
+
 function ApplicationSkeleton() {
   return (
     <div className="animate-pulse rounded-2xl border border-white/10 bg-zinc-900/70 p-5 shadow-xl shadow-black/15">
@@ -471,9 +473,14 @@ export default function Home() {
 
   if (authLoading) {
     return (
-      <div className="relative flex min-h-screen items-center justify-center overflow-hidden bg-neutral-950 px-4 text-zinc-100">
+      <main
+        className="relative flex min-h-screen items-center justify-center overflow-hidden bg-neutral-950 px-4 text-zinc-100"
+        aria-busy="true"
+      >
         <div className="absolute left-1/2 top-0 h-80 w-80 -translate-x-1/2 rounded-full bg-cyan-400/10 blur-3xl" />
-        <div className={`${panelClasses} relative p-8 text-center`}>
+        <div
+          className={`${panelClasses} relative flex min-h-[28rem] w-full max-w-md flex-col items-center justify-center p-8 text-center`}
+        >
           <div className="mx-auto mb-5 flex h-14 w-14 items-center justify-center rounded-2xl bg-cyan-400/10 ring-1 ring-cyan-400/20">
             <div className="h-6 w-6 animate-spin rounded-full border-2 border-cyan-300/30 border-t-cyan-300" />
           </div>
@@ -484,7 +491,7 @@ export default function Home() {
             Preparing your CareerTrack workspace.
           </p>
         </div>
-      </div>
+      </main>
     );
   }
 
@@ -492,7 +499,7 @@ export default function Home() {
     const isLogin = authMode === "login";
 
     return (
-      <div className="relative flex min-h-screen items-center justify-center overflow-hidden bg-neutral-950 px-4 py-10 text-zinc-100">
+      <main className="relative flex min-h-screen items-center justify-center overflow-hidden bg-neutral-950 px-4 py-10 text-zinc-100">
         <div className="absolute -left-24 top-10 h-72 w-72 rounded-full bg-blue-500/15 blur-3xl" />
         <div className="absolute -right-24 bottom-10 h-72 w-72 rounded-full bg-cyan-400/10 blur-3xl" />
         <div className={`${panelClasses} relative w-full max-w-md p-8`}>
@@ -516,10 +523,11 @@ export default function Home() {
             className="space-y-4"
           >
             <div>
-              <label className={labelClasses}>
+              <label htmlFor="email" className={labelClasses}>
                 Email
               </label>
               <input
+                id="email"
                 type="email"
                 value={email}
                 onChange={(e) => {
@@ -533,10 +541,11 @@ export default function Home() {
             </div>
 
             <div>
-              <label className={labelClasses}>
+              <label htmlFor="password" className={labelClasses}>
                 Password
               </label>
               <input
+                id="password"
                 type="password"
                 value={password}
                 onChange={(e) => {
@@ -550,7 +559,10 @@ export default function Home() {
             </div>
 
             {authError && (
-              <p className="rounded-xl border border-red-400/20 bg-red-500/10 px-3 py-2 text-sm font-medium text-red-200">
+              <p
+                className="rounded-xl border border-red-400/20 bg-red-500/10 px-3 py-2 text-sm font-medium text-red-200"
+                role="alert"
+              >
                 {authError}
               </p>
             )}
@@ -584,15 +596,15 @@ export default function Home() {
               : "Already have an account? Log in"}
           </button>
         </div>
-      </div>
+      </main>
     );
   }
 
   return (
-    <div className="relative isolate min-h-screen bg-neutral-950 px-4 py-8 text-zinc-100 sm:px-6 lg:px-8">
+    <main className="relative isolate min-h-screen bg-neutral-950 px-4 py-8 text-zinc-100 sm:px-6 lg:px-8">
       <div className="pointer-events-none fixed inset-0 -z-10 bg-[radial-gradient(circle_at_top_left,rgba(59,130,246,0.16),transparent_32%),radial-gradient(circle_at_top_right,rgba(34,211,238,0.12),transparent_30%),linear-gradient(180deg,#020617,#09090b_45%,#18181b)]" />
       {/* Header */}
-      <div className="mx-auto mb-8 flex max-w-6xl flex-col gap-5 sm:flex-row sm:items-start sm:justify-between">
+      <header className="mx-auto mb-8 flex max-w-6xl flex-col gap-5 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <p className="mb-3 text-xs font-semibold uppercase tracking-[0.24em] text-cyan-300/80">
             Application command center
@@ -616,10 +628,13 @@ export default function Home() {
         >
           {logoutLoading ? "Logging out..." : "Log Out"}
         </button>
-      </div>
+      </header>
 
       {/* Stats Cards */}
-      <div className="mx-auto mb-8 grid max-w-6xl grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <section
+        className="mx-auto mb-8 grid max-w-6xl grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4"
+        aria-label="Application summary"
+      >
         {/* Total Applications */}
         <div className={`${panelClasses} p-5 transition duration-200 hover:-translate-y-1 hover:border-cyan-400/30 hover:shadow-cyan-950/20`}>
           <p className="text-sm font-medium text-zinc-400">
@@ -653,7 +668,7 @@ export default function Home() {
             {stats.offer}
           </p>
         </div>
-      </div>
+      </section>
 
       {/* Main Content */}
       <div className="mx-auto grid max-w-6xl grid-cols-1 gap-6 lg:grid-cols-3">
@@ -670,10 +685,11 @@ export default function Home() {
             <form onSubmit={handleAddApplication} className="space-y-4">
               {/* Company */}
               <div>
-                <label className={labelClasses}>
+                <label htmlFor="company" className={labelClasses}>
                   Company *
                 </label>
                 <input
+                  id="company"
                   type="text"
                   name="company"
                   value={formData.company}
@@ -685,10 +701,11 @@ export default function Home() {
 
               {/* Role */}
               <div>
-                <label className={labelClasses}>
+                <label htmlFor="role" className={labelClasses}>
                   Role *
                 </label>
                 <input
+                  id="role"
                   type="text"
                   name="role"
                   value={formData.role}
@@ -700,10 +717,11 @@ export default function Home() {
 
               {/* Location */}
               <div>
-                <label className={labelClasses}>
+                <label htmlFor="location" className={labelClasses}>
                   Location
                 </label>
                 <input
+                  id="location"
                   type="text"
                   name="location"
                   value={formData.location}
@@ -715,10 +733,11 @@ export default function Home() {
 
               {/* Salary */}
               <div>
-                <label className={labelClasses}>
+                <label htmlFor="salary" className={labelClasses}>
                   Salary
                 </label>
                 <input
+                  id="salary"
                   type="text"
                   name="salary"
                   value={formData.salary}
@@ -730,10 +749,11 @@ export default function Home() {
 
               {/* Job Link */}
               <div>
-                <label className={labelClasses}>
+                <label htmlFor="jobLink" className={labelClasses}>
                   Job Link
                 </label>
                 <input
+                  id="jobLink"
                   type="url"
                   name="jobLink"
                   value={formData.jobLink}
@@ -745,10 +765,11 @@ export default function Home() {
 
               {/* Status */}
               <div>
-                <label className={labelClasses}>
+                <label htmlFor="status" className={labelClasses}>
                   Status
                 </label>
                 <select
+                  id="status"
                   name="status"
                   value={formData.status}
                   onChange={handleInputChange}
@@ -764,10 +785,11 @@ export default function Home() {
 
               {/* Notes */}
               <div>
-                <label className={labelClasses}>
+                <label htmlFor="notes" className={labelClasses}>
                   Notes
                 </label>
                 <textarea
+                  id="notes"
                   name="notes"
                   value={formData.notes}
                   onChange={handleInputChange}
@@ -778,7 +800,10 @@ export default function Home() {
               </div>
 
               {formError && (
-                <p className="rounded-xl border border-red-400/20 bg-red-500/10 px-3 py-2 text-sm font-medium text-red-200">
+                <p
+                  className="rounded-xl border border-red-400/20 bg-red-500/10 px-3 py-2 text-sm font-medium text-red-200"
+                  role="alert"
+                >
                   {formError}
                 </p>
               )}
@@ -809,10 +834,11 @@ export default function Home() {
             <div className="grid gap-4 sm:grid-cols-2">
               {/* Search Box */}
               <div>
-                <label className={labelClasses}>
+                <label htmlFor="application-search" className={labelClasses}>
                   Search
                 </label>
                 <input
+                  id="application-search"
                   type="text"
                   placeholder="Search by company or role..."
                   value={searchTerm}
@@ -823,10 +849,11 @@ export default function Home() {
 
               {/* Status Filter */}
               <div>
-                <label className={labelClasses}>
+                <label htmlFor="status-filter" className={labelClasses}>
                   Filter by Status
                 </label>
                 <select
+                  id="status-filter"
                   value={filterStatus}
                   onChange={(e) => setFilterStatus(e.target.value)}
                   className={inputClasses}
@@ -843,124 +870,130 @@ export default function Home() {
           </div>
 
           {apiError && (
-            <p className="mb-4 rounded-xl border border-red-400/20 bg-red-500/10 px-3 py-2 text-sm font-medium text-red-200">
+            <p
+              className="mb-4 rounded-xl border border-red-400/20 bg-red-500/10 px-3 py-2 text-sm font-medium text-red-200"
+              role="alert"
+            >
               {apiError}
             </p>
           )}
 
           {/* Applications Display */}
-          {applicationsLoading ? (
-            <div className="space-y-4">
-              <ApplicationSkeleton />
-              <ApplicationSkeleton />
-              <ApplicationSkeleton />
-            </div>
-          ) : filteredApplications.length === 0 ? (
-            // Empty State
-            <div className={`${panelClasses} border-dashed border-white/15 p-10 text-center`}>
-              <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-2xl bg-white/5 text-lg font-bold text-zinc-300">
-                CT
+          <section
+            className={applicationResultsClasses}
+            aria-busy={applicationsLoading}
+            aria-live="polite"
+          >
+            {applicationsLoading ? (
+              <>
+                <ApplicationSkeleton />
+                <ApplicationSkeleton />
+                <ApplicationSkeleton />
+              </>
+            ) : filteredApplications.length === 0 ? (
+              // Empty State
+              <div className={`${panelClasses} border-dashed border-white/15 p-10 text-center`}>
+                <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-2xl bg-white/5 text-lg font-bold text-zinc-300">
+                  CT
+                </div>
+                <h3 className="mb-2 text-xl font-semibold text-zinc-50">
+                  No applications yet
+                </h3>
+                <p className="mx-auto max-w-sm text-sm leading-6 text-zinc-400">
+                  {applications.length === 0
+                    ? "Start by adding your first job application!"
+                    : "No applications match your search or filter."}
+                </p>
               </div>
-              <h3 className="mb-2 text-xl font-semibold text-zinc-50">
-                No applications yet
-              </h3>
-              <p className="mx-auto max-w-sm text-sm leading-6 text-zinc-400">
-                {applications.length === 0
-                  ? "Start by adding your first job application!"
-                  : "No applications match your search or filter."}
-              </p>
-            </div>
-          ) : (
-            // Applications List
-            <div className="space-y-4">
-              {filteredApplications.map((app) => (
-                <div
-                  key={app.id}
-                  className="rounded-2xl border border-white/10 bg-zinc-900/70 p-5 shadow-xl shadow-black/15 backdrop-blur transition duration-200 hover:-translate-y-1 hover:border-cyan-400/25 hover:bg-zinc-900 hover:shadow-cyan-950/20"
-                >
-                  <div className="flex flex-col gap-5 sm:flex-row sm:items-start sm:justify-between">
-                    {/* Application Info */}
-                    <div className="min-w-0 flex-1">
-                      <h3 className="text-xl font-bold text-zinc-50">
-                        {app.role}
-                      </h3>
-                      <p className="mt-1 font-medium text-zinc-300">
-                        {app.company}
-                      </p>
+            ) : (
+              // Applications List
+              filteredApplications.map((app) => (
+                  <div
+                    key={app.id}
+                    className="rounded-2xl border border-white/10 bg-zinc-900/70 p-5 shadow-xl shadow-black/15 backdrop-blur transition duration-200 hover:-translate-y-1 hover:border-cyan-400/25 hover:bg-zinc-900 hover:shadow-cyan-950/20"
+                  >
+                    <div className="flex flex-col gap-5 sm:flex-row sm:items-start sm:justify-between">
+                      {/* Application Info */}
+                      <div className="min-w-0 flex-1">
+                        <h3 className="text-xl font-bold text-zinc-50">
+                          {app.role}
+                        </h3>
+                        <p className="mt-1 font-medium text-zinc-300">
+                          {app.company}
+                        </p>
 
-                      <div className="mt-4 flex flex-wrap gap-2 text-xs font-medium text-zinc-400">
-                        {app.location && (
+                        <div className="mt-4 flex flex-wrap gap-2 text-xs font-medium text-zinc-400">
+                          {app.location && (
+                            <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1">
+                              Location: {app.location}
+                            </span>
+                          )}
+                          {app.salary && (
+                            <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1">
+                              Salary: {app.salary}
+                            </span>
+                          )}
                           <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1">
-                            Location: {app.location}
+                            Added: {formatDate(app.createdAt)}
                           </span>
+                        </div>
+
+                        {app.notes && (
+                          <p className="mt-4 rounded-xl border border-white/10 bg-zinc-950/50 p-3 text-sm leading-6 text-zinc-300">
+                            <strong className="text-zinc-100">Notes:</strong>{" "}
+                            {app.notes}
+                          </p>
                         )}
-                        {app.salary && (
-                          <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1">
-                            Salary: {app.salary}
-                          </span>
+
+                        {app.jobLink && (
+                          <a
+                            href={app.jobLink}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="mt-4 inline-block text-sm font-semibold text-cyan-300 transition duration-200 hover:text-cyan-200 hover:underline"
+                          >
+                            View Job Posting
+                          </a>
                         )}
-                        <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1">
-                          Added: {formatDate(app.createdAt)}
-                        </span>
                       </div>
 
-                      {app.notes && (
-                        <p className="mt-4 rounded-xl border border-white/10 bg-zinc-950/50 p-3 text-sm leading-6 text-zinc-300">
-                          <strong className="text-zinc-100">Notes:</strong>{" "}
-                          {app.notes}
-                        </p>
-                      )}
-
-                      {app.jobLink && (
-                        <a
-                          href={app.jobLink}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="mt-4 inline-block text-sm font-semibold text-cyan-300 transition duration-200 hover:text-cyan-200 hover:underline"
+                      {/* Status and Actions */}
+                      <div className="flex flex-row items-center gap-2 sm:flex-col sm:items-end">
+                        {/* Status Badge */}
+                        <span
+                          className={`rounded-full px-3 py-1 text-xs font-bold leading-5 shadow-sm ${getStatusStyles(
+                            app.status
+                          )}`}
                         >
-                          View Job Posting
-                        </a>
-                      )}
-                    </div>
+                          {app.status}
+                        </span>
 
-                    {/* Status and Actions */}
-                    <div className="flex flex-row items-center gap-2 sm:flex-col sm:items-end">
-                      {/* Status Badge */}
-                      <span
-                        className={`rounded-full px-3 py-1 text-xs font-bold leading-5 shadow-sm ${getStatusStyles(
-                          app.status
-                        )}`}
-                      >
-                        {app.status}
-                      </span>
+                        {/* Edit Button */}
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setFormError("");
+                            setEditingApplication(app);
+                          }}
+                          className={secondaryButtonClasses}
+                        >
+                          Edit
+                        </button>
 
-                      {/* Edit Button */}
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setFormError("");
-                          setEditingApplication(app);
-                        }}
-                        className={secondaryButtonClasses}
-                      >
-                        Edit
-                      </button>
-
-                      {/* Delete Button */}
-                      <button
-                        type="button"
-                        onClick={() => handleDeleteApplication(app.id)}
-                        disabled={deletingId === app.id}
-                        className={dangerButtonClasses}
-                      >
-                        {deletingId === app.id ? "Deleting..." : "Delete"}
-                      </button>
+                        {/* Delete Button */}
+                        <button
+                          type="button"
+                          onClick={() => handleDeleteApplication(app.id)}
+                          disabled={deletingId === app.id}
+                          className={`${dangerButtonClasses} min-w-20`}
+                        >
+                          {deletingId === app.id ? "Deleting..." : "Delete"}
+                        </button>
+                      </div>
                     </div>
                   </div>
-                </div>
-              ))}
-            </div>
-          )}
+              )))}
+          </section>
         </div>
       </div>
 
@@ -989,6 +1022,7 @@ export default function Home() {
 
             <div className="grid gap-4 sm:grid-cols-2">
               <input
+                aria-label="Company"
                 value={editingApplication.company}
                 onChange={(e) =>
                   setEditingApplication({
@@ -1001,6 +1035,7 @@ export default function Home() {
               />
 
               <input
+                aria-label="Role"
                 value={editingApplication.role}
                 onChange={(e) =>
                   setEditingApplication({
@@ -1013,6 +1048,7 @@ export default function Home() {
               />
 
               <input
+                aria-label="Location"
                 value={editingApplication.location}
                 onChange={(e) =>
                   setEditingApplication({
@@ -1025,6 +1061,7 @@ export default function Home() {
               />
 
               <input
+                aria-label="Salary"
                 value={editingApplication.salary}
                 onChange={(e) =>
                   setEditingApplication({
@@ -1037,6 +1074,7 @@ export default function Home() {
               />
 
               <input
+                aria-label="Job link"
                 type="url"
                 value={editingApplication.jobLink}
                 onChange={(e) =>
@@ -1050,6 +1088,7 @@ export default function Home() {
               />
 
               <select
+                aria-label="Status"
                 value={editingApplication.status}
                 onChange={(e) =>
                   setEditingApplication({
@@ -1067,6 +1106,7 @@ export default function Home() {
               </select>
 
               <textarea
+                aria-label="Notes"
                 value={editingApplication.notes}
                 onChange={(e) =>
                   setEditingApplication({
@@ -1080,7 +1120,10 @@ export default function Home() {
             </div>
 
             {formError && (
-              <p className="mt-4 rounded-xl border border-red-400/20 bg-red-500/10 px-3 py-2 text-sm font-medium text-red-200">
+              <p
+                className="mt-4 rounded-xl border border-red-400/20 bg-red-500/10 px-3 py-2 text-sm font-medium text-red-200"
+                role="alert"
+              >
                 {formError}
               </p>
             )}
@@ -1106,7 +1149,7 @@ export default function Home() {
           </div>
         </div>
       )}
-    </div>
+    </main>
   );
 }
 

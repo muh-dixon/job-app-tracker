@@ -52,7 +52,12 @@ const secondaryButtonClasses =
 const dangerButtonClasses =
   "rounded-xl border border-red-400/20 bg-red-500/10 px-3 py-1.5 text-sm font-semibold text-red-200 transition duration-200 hover:-translate-y-0.5 hover:border-red-400/40 hover:bg-red-500/15 active:translate-y-0 focus:outline-none focus:ring-4 focus:ring-red-400/10";
 
-const applicationResultsClasses = "min-h-[26rem] space-y-4";
+const authShellClasses =
+  "relative flex min-h-screen items-center justify-center overflow-hidden bg-neutral-950 px-4 py-10 text-zinc-100";
+
+const authPanelClasses = `${panelClasses} relative min-h-[26rem] w-full max-w-md p-8`;
+
+const applicationResultsClasses = "space-y-4 sm:min-h-[26rem]";
 
 function ApplicationSkeleton() {
   return (
@@ -474,13 +479,11 @@ export default function Home() {
   if (authLoading) {
     return (
       <main
-        className="relative flex min-h-screen items-center justify-center overflow-hidden bg-neutral-950 px-4 text-zinc-100"
+        className={authShellClasses}
         aria-busy="true"
       >
         <div className="absolute left-1/2 top-0 h-80 w-80 -translate-x-1/2 rounded-full bg-cyan-400/10 blur-3xl" />
-        <div
-          className={`${panelClasses} relative flex min-h-[28rem] w-full max-w-md flex-col items-center justify-center p-8 text-center`}
-        >
+        <div className={`${authPanelClasses} flex flex-col items-center justify-center text-center`}>
           <div className="mx-auto mb-5 flex h-14 w-14 items-center justify-center rounded-2xl bg-cyan-400/10 ring-1 ring-cyan-400/20">
             <div className="h-6 w-6 animate-spin rounded-full border-2 border-cyan-300/30 border-t-cyan-300" />
           </div>
@@ -499,10 +502,10 @@ export default function Home() {
     const isLogin = authMode === "login";
 
     return (
-      <main className="relative flex min-h-screen items-center justify-center overflow-hidden bg-neutral-950 px-4 py-10 text-zinc-100">
+      <main className={authShellClasses}>
         <div className="absolute -left-24 top-10 h-72 w-72 rounded-full bg-blue-500/15 blur-3xl" />
         <div className="absolute -right-24 bottom-10 h-72 w-72 rounded-full bg-cyan-400/10 blur-3xl" />
-        <div className={`${panelClasses} relative w-full max-w-md p-8`}>
+        <div className={authPanelClasses}>
           <div className="mb-8">
             <div className="mb-5 flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-blue-500 to-cyan-400 text-lg font-bold text-white shadow-lg shadow-blue-950/40">
               CT
@@ -624,7 +627,7 @@ export default function Home() {
           type="button"
           onClick={handleLogout}
           disabled={logoutLoading}
-          className={`${secondaryButtonClasses} w-fit`}
+          className={`${secondaryButtonClasses} min-w-28 w-fit`}
         >
           {logoutLoading ? "Logging out..." : "Log Out"}
         </button>
@@ -1141,7 +1144,7 @@ export default function Home() {
                 type="button"
                 onClick={handleUpdateApplication}
                 disabled={editLoading}
-                className={primaryButtonClasses}
+                className={`${primaryButtonClasses} min-w-32`}
               >
                 {editLoading ? "Saving..." : "Save Changes"}
               </button>

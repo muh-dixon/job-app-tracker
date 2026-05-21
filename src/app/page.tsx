@@ -476,33 +476,20 @@ export default function Home() {
     }
   };
 
-  if (authLoading) {
-    return (
-      <main
-        className={authShellClasses}
-        aria-busy="true"
-      >
-        <div className="absolute left-1/2 top-0 h-80 w-80 -translate-x-1/2 rounded-full bg-cyan-400/10 blur-3xl" />
-        <div className={`${authPanelClasses} flex flex-col items-center justify-center text-center`}>
-          <div className="mx-auto mb-5 flex h-14 w-14 items-center justify-center rounded-2xl bg-cyan-400/10 ring-1 ring-cyan-400/20">
-            <div className="h-6 w-6 animate-spin rounded-full border-2 border-cyan-300/30 border-t-cyan-300" />
-          </div>
-          <h1 className="text-2xl font-bold text-zinc-50">
-            Checking your session...
-          </h1>
-          <p className="mt-2 text-sm text-zinc-400">
-            Preparing your CareerTrack workspace.
-          </p>
-        </div>
-      </main>
-    );
-  }
-
-  if (!user) {
+  if (authLoading || !user) {
     const isLogin = authMode === "login";
+    const authSubmitLabel = authLoading
+      ? "Checking session..."
+      : authActionLoading
+        ? isLogin
+          ? "Logging in..."
+          : "Creating account..."
+        : isLogin
+          ? "Log In"
+          : "Create Account";
 
     return (
-      <main className={authShellClasses}>
+      <main className={authShellClasses} aria-busy={authLoading}>
         <div className="absolute -left-24 top-10 h-72 w-72 rounded-full bg-blue-500/15 blur-3xl" />
         <div className="absolute -right-24 bottom-10 h-72 w-72 rounded-full bg-cyan-400/10 blur-3xl" />
         <div className={authPanelClasses}>
@@ -533,6 +520,7 @@ export default function Home() {
                 id="email"
                 type="email"
                 value={email}
+                disabled={authLoading || authActionLoading}
                 onChange={(e) => {
                   setEmail(e.target.value);
                   setAuthError("");
@@ -551,6 +539,7 @@ export default function Home() {
                 id="password"
                 type="password"
                 value={password}
+                disabled={authLoading || authActionLoading}
                 onChange={(e) => {
                   setPassword(e.target.value);
                   setAuthError("");
@@ -572,22 +561,16 @@ export default function Home() {
 
             <button
               type="submit"
-              disabled={authActionLoading}
+              disabled={authLoading || authActionLoading}
               className={`${primaryButtonClasses} w-full`}
             >
-              {authActionLoading
-                ? isLogin
-                  ? "Logging in..."
-                  : "Creating account..."
-                : isLogin
-                  ? "Log In"
-                  : "Create Account"}
+              {authSubmitLabel}
             </button>
           </form>
 
           <button
             type="button"
-            disabled={authActionLoading}
+            disabled={authLoading || authActionLoading}
             onClick={() => {
               setAuthMode(isLogin ? "signup" : "login");
               setAuthError("");

@@ -31,7 +31,12 @@ The project also includes frontend performance and accessibility work based on L
 
 ![CareerTrack demo](public/demo/careertrack-demo.gif)
 
-> Optional: add Lighthouse and CI result screenshots here when storing documentation assets in the repository.
+### Validation Results
+
+![GitHub Actions CI passing for CareerTrack](public/demo/careertrack-ci-success.png)
+
+- [Lighthouse report for the signed-out experience](public/demo/lighthouse-careertrack-v3.pdf)
+- [Lighthouse report for the authenticated dashboard](public/demo/lighthouse-careertrack-v3-auth.pdf)
 
 ## Features
 

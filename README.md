@@ -1,18 +1,17 @@
-# CareerTrack Dashboard
+# CareerTrack-v1
 
-CareerTrack Dashboard is an authenticated full-stack job application tracker for job seekers who want a simple way to manage roles, statuses, notes, and job links during a search. It solves the problem of scattered job search tracking by combining a protected Next.js dashboard with Supabase Auth, PostgreSQL persistence, protected API routes, Tailwind CSS, and Row Level Security.
+[![CI](https://github.com/muh-dixon/job-app-tracker/actions/workflows/ci.yml/badge.svg)](https://github.com/muh-dixon/job-app-tracker/actions/workflows/ci.yml)
 
-Live Demo: https://job-app-tracker-aar6em2ac-shabils-projects-6e585193.vercel.app/?auth=login
+CareerTrack-v1 is a full-stack job application tracking dashboard built with Next.js, React, TypeScript, Tailwind CSS, and Supabase. It helps job seekers organize applications, interviews, notes, job links, and progress through a responsive dashboard interface.
 
-GitHub: https://github.com/muh-dixon/job-app-tracker
+**Live Demo:** https://job-app-tracker-aar6em2ac-shabils-projects-6e585193.vercel.app/?auth=login  
+**Repository:** https://github.com/muh-dixon/job-app-tracker
 
-## Demo
+## Project Overview
 
-![CareerTrack demo](public/demo/careertrack-demo.gif)
+CareerTrack-v1 was built as a practical job-search workflow tool and portfolio project. The app includes authentication, protected data access, CRUD operations, dashboard metrics, and a mobile-responsive UI for tracking applications throughout the hiring process.
 
-## Short Description
-
-CareerTrack lets authenticated users create, update, delete, search, and filter job applications from a single dashboard. Each user's application data is scoped to their Supabase account and protected through API authentication checks and database-level RLS policies.
+The project also includes frontend performance and accessibility work based on Lighthouse audits, with improvements focused on semantic HTML, stable auth-loading rendering, reduced layout shift, and production build validation through GitHub Actions.
 
 ## Screenshots
 
@@ -20,7 +19,7 @@ CareerTrack lets authenticated users create, update, delete, search, and filter 
 
 ![CareerTrack login screen](public/demo/careertrack-login.png)
 
-### Empty Dashboard
+### Dashboard Empty State
 
 ![CareerTrack empty dashboard](public/demo/careertrack-dashboard-empty.png)
 
@@ -28,79 +27,96 @@ CareerTrack lets authenticated users create, update, delete, search, and filter 
 
 ![CareerTrack dashboard with an application card](public/demo/careertrack-dashboard-application.png)
 
+### Demo
+
+![CareerTrack demo](public/demo/careertrack-demo.gif)
+
+> Optional: add Lighthouse and CI result screenshots here when storing documentation assets in the repository.
+
 ## Features
 
-- Email/password authentication with Supabase Auth
-- Persistent authenticated sessions
-- Protected dashboard access
+- Supabase email/password authentication
+- Protected dashboard experience for signed-in users
 - Create, read, update, and delete job applications
 - Track company, role, location, salary, job link, status, and notes
 - Search applications by company or role
-- Filter applications by status
-- Dashboard stats for total applications, applied roles, interviews, and offers
-- Duplicate application checks scoped to the authenticated user
-- Protected Next.js API routes
-- PostgreSQL persistence through Supabase
-- Row Level Security for user-owned application rows
+- Filter applications by application status
+- Dashboard progress metrics for total applications, applied roles, interviews, and offers
+- Real-time frontend state updates after create, update, and delete actions
+- Responsive layout for desktop and mobile screens
+- Protected API routes with authenticated user checks
 
 ## Tech Stack
 
-- Next.js App Router
-- React
-- TypeScript
-- Tailwind CSS
-- Supabase Auth
-- Supabase PostgreSQL
-- Next.js API Routes
-- Vercel
+- **Framework:** Next.js App Router
+- **Frontend:** React, TypeScript
+- **Styling:** Tailwind CSS
+- **Backend:** Next.js Route Handlers
+- **Auth & Database:** Supabase Auth, Supabase PostgreSQL
+- **Deployment:** Vercel
+- **CI/CD:** GitHub Actions
 
-## Architecture / How It Works
+## Engineering Workflow
 
-The app uses Supabase Auth for user sessions and Next.js API routes for server-side CRUD operations. The browser retrieves the active Supabase access token and sends it with each application request. API routes verify the token, identify the authenticated user, and scope database queries by `user_id`.
+This project was developed with a focus on practical full-stack fundamentals:
+
+- Built authenticated frontend flows using Supabase sessions
+- Scoped application data to the authenticated user
+- Used API routes for server-side CRUD operations
+- Validated form and application status data before database updates
+- Improved accessibility with semantic HTML, labels, ARIA attributes, and landmarks
+- Used Lighthouse reports to identify and fix Core Web Vitals issues
+- Added automated lint and production build checks through GitHub Actions
+
+## Lighthouse Optimization
+
+Lighthouse audits were used to improve frontend quality and verify performance changes across both authenticated and signed-out states.
+
+Final Lighthouse scores:
+
+| Category | Score |
+| --- | ---: |
+| Performance | 98 |
+| Accessibility | 100 |
+| Best Practices | 100 |
+| SEO | 100 |
+
+Optimization work included:
+
+- Added semantic landmarks, including a proper `<main>` landmark
+- Improved form accessibility with explicit labels and ARIA attributes
+- Reduced Cumulative Layout Shift from `0.476` to `0`
+- Stabilized the auth-loading and signed-out login rendering flow
+- Removed the separate spinner-only auth loading layout in favor of a stable login card shell
+- Reserved consistent layout space for loading and dynamic UI states
+- Preserved the dashboard visual design while improving frontend stability
+
+## CI/CD Pipeline
+
+The repository includes a GitHub Actions workflow that runs on pushes to `main` and on pull requests.
+
+CI validates:
+
+- Dependency installation with `npm ci`
+- ESLint checks with `npm run lint`
+- Production build verification with `npm run build`
+
+Workflow file:
 
 ```text
-User signs in
--> Supabase Auth creates a session
--> Dashboard requests application data
--> API route validates the access token
--> Supabase/PostgreSQL queries are scoped by user_id
--> RLS policies enforce row ownership
--> React state updates the dashboard
+.github/workflows/ci.yml
 ```
 
-Main API routes:
+The CI workflow helps catch linting or build issues before changes are merged or deployed.
 
-- `GET /api/applications` returns applications owned by the authenticated user.
-- `POST /api/applications` creates a new application for the authenticated user.
-- `PUT /api/applications/:id` updates an application only when it belongs to the authenticated user.
-- `DELETE /api/applications/:id` deletes an application only when both `id` and `user_id` match.
+## Installation
 
-Security layers:
+Clone the repository:
 
-- Supabase Auth manages signup, login, logout, and sessions.
-- Next.js route protection redirects unauthenticated users away from the dashboard.
-- API routes validate bearer tokens before database operations.
-- Row Level Security protects application rows at the database level.
-- The Supabase service role key is used only on the server.
-
-## Environment Variables
-
-Create a `.env.local` file for local development:
-
-```env
-NEXT_PUBLIC_SUPABASE_URL=your_supabase_project_url
-NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=your_supabase_publishable_key
-SUPABASE_SERVICE_ROLE_KEY=your_supabase_service_role_key
+```bash
+git clone https://github.com/muh-dixon/job-app-tracker.git
+cd job-app-tracker
 ```
-
-Notes:
-
-- `NEXT_PUBLIC_SUPABASE_URL` points the app to the Supabase project.
-- `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` is used by browser code for Supabase Auth.
-- `SUPABASE_SERVICE_ROLE_KEY` must stay server-side and should never be exposed in client code.
-- `.env.local` should not be committed.
-
-## Getting Started
 
 Install dependencies:
 
@@ -108,38 +124,70 @@ Install dependencies:
 npm install
 ```
 
-Run the development server:
+## Environment Variables
+
+Create a `.env.local` file in the project root:
+
+```env
+NEXT_PUBLIC_SUPABASE_URL=your_supabase_project_url
+NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=your_supabase_publishable_key
+SUPABASE_SERVICE_ROLE_KEY=your_supabase_service_role_key
+```
+
+Variable notes:
+
+- `NEXT_PUBLIC_SUPABASE_URL` points the app to the Supabase project.
+- `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` is used by the browser client for Supabase Auth.
+- `SUPABASE_SERVICE_ROLE_KEY` is used only on the server for protected database operations.
+- Do not commit `.env.local` or service role secrets.
+
+## Running Locally
+
+Start the development server:
 
 ```bash
 npm run dev
 ```
 
-Open the local app:
+Open the app:
 
 ```text
 http://localhost:3000
 ```
 
-Build for production:
+Run lint:
+
+```bash
+npm run lint
+```
+
+Create a production build:
 
 ```bash
 npm run build
 ```
 
-## What I Learned
+## Deployment
 
-- Building authenticated full-stack features with Next.js and Supabase
-- Protecting API routes with bearer token validation
-- Modeling user-owned data with PostgreSQL and `user_id`
-- Applying Row Level Security as a database-level safety layer
-- Managing client-side auth state and server-side data access together
-- Deploying a full-stack Next.js application with environment variables on Vercel
+CareerTrack-v1 is deployed on Vercel. The production deployment uses the same Next.js build process validated by the GitHub Actions workflow.
+
+For deployment, configure the required Supabase environment variables in the Vercel project settings:
+
+```text
+NEXT_PUBLIC_SUPABASE_URL
+NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY
+SUPABASE_SERVICE_ROLE_KEY
+```
 
 ## Future Improvements
 
-- Add screenshot assets to the README
-- Add application sorting by date, company, and status
-- Add reminders or follow-up dates
-- Add CSV export for saved applications
-- Add richer analytics for pipeline progress
+- Add follow-up reminders and interview dates
+- Add sorting by company, date created, and status
+- Add richer analytics for application pipeline progress
+- Add CSV export for application records
 - Add automated tests for API route behavior
+- Add a dedicated documentation section for Lighthouse reports and CI screenshots
+
+## Author
+
+Built by [muh-dixon](https://github.com/muh-dixon) as a full-stack portfolio project focused on authentication, CRUD workflows, responsive UI, accessibility, and production validation.

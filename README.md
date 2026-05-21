@@ -53,6 +53,7 @@ The project also includes frontend performance and accessibility work based on L
 - **Styling:** Tailwind CSS
 - **Backend:** Next.js Route Handlers
 - **Auth & Database:** Supabase Auth, Supabase PostgreSQL
+- **Testing:** Jest, React Testing Library
 - **Deployment:** Vercel
 - **CI/CD:** GitHub Actions
 
@@ -66,7 +67,8 @@ This project was developed with a focus on practical full-stack fundamentals:
 - Validated form and application status data before database updates
 - Improved accessibility with semantic HTML, labels, ARIA attributes, and landmarks
 - Used Lighthouse reports to identify and fix Core Web Vitals issues
-- Added automated lint and production build checks through GitHub Actions
+- Added frontend tests for the auth form with mocked Supabase behavior
+- Added automated lint, test, and production build checks through GitHub Actions
 
 ## Lighthouse Optimization
 
@@ -99,6 +101,7 @@ CI validates:
 
 - Dependency installation with `npm ci`
 - ESLint checks with `npm run lint`
+- Frontend test coverage with `npm test`
 - Production build verification with `npm run build`
 
 Workflow file:
@@ -107,7 +110,29 @@ Workflow file:
 .github/workflows/ci.yml
 ```
 
-The CI workflow helps catch linting or build issues before changes are merged or deployed.
+The CI workflow helps catch linting, test, and build issues before changes are merged or deployed.
+
+## Testing
+
+CareerTrack-v1 uses Jest and React Testing Library for beginner-friendly frontend tests focused on user-visible behavior.
+
+Testing setup includes:
+
+- Jest configured with `next/jest`
+- React Testing Library for rendering components and querying accessible UI
+- `@testing-library/user-event` for realistic typing and click interactions
+- `@testing-library/jest-dom` for readable DOM assertions
+- A mocked Supabase auth client so tests do not depend on real environment variables, auth sessions, or network calls
+
+### Current Test Coverage
+
+The current test suite covers the signed-out login page:
+
+- The login page renders without crashing
+- The email and password inputs accept typed text
+- Submitting the login form calls Supabase `signInWithPassword` with the typed email and password
+
+These tests are intentionally small and focused. They verify the auth form behavior without claiming broad application coverage.
 
 ## Installation
 
@@ -161,6 +186,12 @@ Run lint:
 npm run lint
 ```
 
+Run tests:
+
+```bash
+npm test
+```
+
 Create a production build:
 
 ```bash
@@ -185,6 +216,7 @@ SUPABASE_SERVICE_ROLE_KEY
 - Add sorting by company, date created, and status
 - Add richer analytics for application pipeline progress
 - Add CSV export for application records
+- Add dashboard interaction tests for adding, editing, filtering, and deleting applications
 - Add automated tests for API route behavior
 - Add a dedicated documentation section for Lighthouse reports and CI screenshots
 

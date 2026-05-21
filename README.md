@@ -35,8 +35,8 @@ The project also includes frontend performance and accessibility work based on L
 
 ![GitHub Actions CI passing for CareerTrack](public/demo/careertrack-ci-success.png)
 
-- [Lighthouse report for the signed-out experience](public/demo/lighthouse-careertrack-v3.pdf)
-- [Lighthouse report for the authenticated dashboard](public/demo/lighthouse-careertrack-v3-auth.pdf)
+- [Lighthouse report for the signed-in experience](public/demo/lighthouse-careertrack-v3.pdf)
+- [Lighthouse report for the log-in dashboard](public/demo/lighthouse-careertrack-v3-auth.pdf)
 
 ## Features
 

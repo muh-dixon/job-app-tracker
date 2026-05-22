@@ -72,8 +72,10 @@ This project was developed with a focus on practical full-stack fundamentals:
 - Validated form and application status data before database updates
 - Improved accessibility with semantic HTML, labels, ARIA attributes, and landmarks
 - Used Lighthouse reports to identify and fix Core Web Vitals issues
-- Added frontend tests for the auth form with mocked Supabase behavior
-- Added automated lint, test, and production build checks through GitHub Actions
+- Added frontend integration-style tests with mocked Supabase auth and mocked API calls
+- Tested both signed-out auth screens and authenticated dashboard states
+- Added coverage for application creation, bearer-token API requests, and API error handling
+- Added CI validation for dependency installation, linting, tests, and production builds through GitHub Actions
 
 ## Lighthouse Optimization
 
@@ -119,7 +121,7 @@ The CI workflow helps catch linting, test, and build issues before changes are m
 
 ## Testing
 
-CareerTrack-v1 uses Jest and React Testing Library for beginner-friendly frontend tests focused on user-visible behavior.
+CareerTrack-v1 uses Jest and React Testing Library for beginner-friendly frontend tests focused on user-visible behavior and key authenticated dashboard flows.
 
 Testing setup includes:
 
@@ -127,17 +129,30 @@ Testing setup includes:
 - React Testing Library for rendering components and querying accessible UI
 - `@testing-library/user-event` for realistic typing and click interactions
 - `@testing-library/jest-dom` for readable DOM assertions
-- A mocked Supabase auth client so tests do not depend on real environment variables, auth sessions, or network calls
+- A mocked Supabase auth client so tests do not depend on real auth sessions
+- Mocked `fetch` calls so dashboard tests do not make real API or network requests
+- Authenticated and unauthenticated rendering paths
+- Error-state coverage for failed dashboard application loading
+- Bearer-token assertions for authenticated API requests
 
 ### Current Test Coverage
 
-The current test suite covers the signed-out login page:
+The current frontend test suite includes 6 passing tests:
 
-- The login page renders without crashing
-- The email and password inputs accept typed text
-- Submitting the login form calls Supabase `signInWithPassword` with the typed email and password
+1. Login page render test
+2. Email and password input interaction test
+3. Login submit behavior test with Supabase `signInWithPassword`
+4. Authenticated dashboard render test with mocked application data
+5. New application creation test that asserts the expected `POST /api/applications` request and payload
+6. API error handling test for a failed initial `GET /api/applications` request
 
-These tests are intentionally small and focused. They verify the auth form behavior without claiming broad application coverage.
+These tests are intentionally focused and integration-style at the page level. They verify important user flows without claiming exhaustive application or backend coverage.
+
+### Future Testing Improvements
+
+- Split dashboard tests into a dedicated suite as coverage grows
+- Add smaller component-level tests for reusable dashboard UI pieces
+- Add additional API route integration tests for update, delete, filtering, and authorization edge cases
 
 ## Installation
 
@@ -221,8 +236,8 @@ SUPABASE_SERVICE_ROLE_KEY
 - Add sorting by company, date created, and status
 - Add richer analytics for application pipeline progress
 - Add CSV export for application records
-- Add dashboard interaction tests for adding, editing, filtering, and deleting applications
-- Add automated tests for API route behavior
+- Add dashboard interaction tests for editing, filtering, and deleting applications
+- Add automated API route tests for backend behavior and authorization
 - Add a dedicated documentation section for Lighthouse reports and CI screenshots
 
 ## Author

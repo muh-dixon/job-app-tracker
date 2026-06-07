@@ -50,6 +50,7 @@ const cloudAuthUnavailableWarning =
   "Cloud auth is unavailable. Using local mode on this browser.";
 const cloudDataUnavailableWarning =
   "Supabase is unavailable. Your changes are saved locally and will stay on this device.";
+const startupTimeoutMs = 300;
 
 let isCloudAuthKnownUnavailable = false;
 
@@ -205,7 +206,7 @@ function createLocalId() {
 function isSupabaseConfigured() {
   return Boolean(
     process.env.NEXT_PUBLIC_SUPABASE_URL &&
-      process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
   );
 }
 
@@ -231,6 +232,24 @@ async function getSessionToken() {
     return session?.access_token ?? null;
   } catch {
     return null;
+  }
+}
+
+async function withTimeout<T>(promise: Promise<T>, timeoutMs: number) {
+  let timeoutId: ReturnType<typeof setTimeout> | undefined;
+
+  const timeout = new Promise<never>((_resolve, reject) => {
+    timeoutId = setTimeout(() => {
+      reject(new Error("Supabase startup timed out."));
+    }, timeoutMs);
+  });
+
+  try {
+    return await Promise.race([promise, timeout]);
+  } finally {
+    if (timeoutId) {
+      clearTimeout(timeoutId);
+    }
   }
 }
 
@@ -337,16 +356,21 @@ void disabledSupabaseSignup;
 
 export const applicationDataService = {
   async getCurrentUser(): Promise<AuthState> {
+    const localUser = loadLocalUser();
+    if (isLocalModeEnabled() && localUser) {
+      return { user: localUser, warning: cloudAuthUnavailableWarning };
+    }
+
     const supabase = getSupabaseSafely();
 
     if (!supabase) {
-      return { user: loadLocalUser(), warning: cloudAuthUnavailableWarning };
+      return { user: localUser, warning: cloudAuthUnavailableWarning };
     }
 
     try {
       const {
         data: { session },
-      } = await supabase.auth.getSession();
+      } = await withTimeout(supabase.auth.getSession(), startupTimeoutMs);
 
       const user = getUserFromSupabase(session?.user);
       if (user) {
@@ -354,9 +378,9 @@ export const applicationDataService = {
         return { user };
       }
 
-      return { user: loadLocalUser() };
+      return { user: localUser };
     } catch {
-      return { user: loadLocalUser(), warning: cloudAuthUnavailableWarning };
+      return { user: localUser, warning: cloudAuthUnavailableWarning };
     }
   },
 

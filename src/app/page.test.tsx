@@ -101,7 +101,7 @@ beforeEach(() => {
   jest.clearAllMocks();
   window.localStorage.clear();
   process.env.NEXT_PUBLIC_SUPABASE_URL = "https://example.supabase.co";
-  process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY = "publishable-key";
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY = "anon-key";
   mockGetSession.mockResolvedValue({
     data: { session: null },
   });
@@ -130,6 +130,25 @@ it("renders the login page without crashing", async () => {
   expect(
     screen.getByRole("button", { name: /continue as guest/i })
   ).toBeInTheDocument();
+});
+
+it("renders the guest-capable auth screen when Supabase startup hangs", async () => {
+  mockGetSession.mockImplementation(
+    () => new Promise<never>(() => undefined)
+  );
+  const { default: Home } = await import("./page");
+
+  render(<Home />);
+
+  expect(
+    await screen.findByRole("heading", { name: /careertrack dashboard/i })
+  ).toBeInTheDocument();
+  expect(
+    await screen.findByText(/cloud auth is unavailable/i)
+  ).toBeInTheDocument();
+  expect(
+    screen.getByRole("button", { name: /continue as guest/i })
+  ).toBeEnabled();
 });
 
 it("continues as guest with a stable local session", async () => {
@@ -281,7 +300,7 @@ it("uses a local session when Supabase login fails to fetch", async () => {
 it("uses local fallback login when Supabase env vars are missing", async () => {
   const user = userEvent.setup();
   delete process.env.NEXT_PUBLIC_SUPABASE_URL;
-  delete process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
+  delete process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
   const { default: Home } = await import("./page");
 
   render(<Home />);
@@ -362,7 +381,7 @@ it("resolves signup with a local session when Supabase signUp throws", async () 
 it("uses local fallback signup when Supabase env vars are missing", async () => {
   const user = userEvent.setup();
   delete process.env.NEXT_PUBLIC_SUPABASE_URL;
-  delete process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
+  delete process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
   const { default: Home } = await import("./page");
 
   render(<Home />);
@@ -532,7 +551,7 @@ it("falls back to local storage when Supabase is unavailable", async () => {
 
 it("loads from local storage when Supabase is not configured", async () => {
   delete process.env.NEXT_PUBLIC_SUPABASE_URL;
-  delete process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
+  delete process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
   window.localStorage.setItem(
     "careertrack:local-session",
     JSON.stringify({

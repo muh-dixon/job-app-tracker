@@ -101,12 +101,20 @@ export default function Home() {
 
   useEffect(() => {
     const checkSession = async () => {
-      const { user: currentUser, warning } =
-        await applicationDataService.getCurrentUser();
+      try {
+        const { user: currentUser, warning } =
+          await applicationDataService.getCurrentUser();
 
-      setUser(currentUser);
-      setAuthWarning(warning ?? "");
-      setAuthLoading(false);
+        setUser(currentUser);
+        setAuthWarning(warning ?? "");
+      } catch {
+        setUser(null);
+        setAuthWarning(
+          "Cloud auth is unavailable. Using local mode on this browser."
+        );
+      } finally {
+        setAuthLoading(false);
+      }
     };
 
     checkSession();

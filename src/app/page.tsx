@@ -1,32 +1,12 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
-import { createClient } from "@/lib/supabase/client";
-import type { User } from "@supabase/supabase-js";
+import { useEffect, useState } from "react";
 
-// TypeScript Interface for Application
-interface Application {
-  id: string;
-  user_id: string;
-  company: string;
-  role: string;
-  location: string;
-  salary: string;
-  jobLink: string;
-  status: "Saved" | "Applied" | "Interview" | "Offer" | "Rejected";
-  notes: string;
-  createdAt: string;
-}
-
-const getErrorMessage = async (response: Response) => {
-  const data = await response.json().catch(() => null);
-
-  if (data && typeof data.error === "string") {
-    return data.error;
-  }
-
-  return "Something went wrong. Please try again.";
-};
+import {
+  applicationDataService,
+  type AppUser,
+} from "@/lib/applications/data-service";
+import { statusOptions, type Application } from "@/lib/applications/store";
 
 const formatDate = (date: string) =>
   new Date(date).toLocaleDateString(undefined, {
@@ -88,8 +68,7 @@ function ApplicationSkeleton() {
 
 export default function Home() {
   // State Management
-  const supabase = useMemo(() => createClient(), []);
-  const [user, setUser] = useState<User | null>(null);
+  const [user, setUser] = useState<AppUser | null>(null);
   const [authLoading, setAuthLoading] = useState(true);
   const [authError, setAuthError] = useState("");
   const [email, setEmail] = useState("");
@@ -102,6 +81,8 @@ export default function Home() {
     useState<Application | null>(null);
   const [formError, setFormError] = useState("");
   const [apiError, setApiError] = useState("");
+  const [authWarning, setAuthWarning] = useState("");
+  const [syncWarning, setSyncWarning] = useState("");
   const [applicationsLoading, setApplicationsLoading] = useState(true);
   const [authActionLoading, setAuthActionLoading] = useState(false);
   const [logoutLoading, setLogoutLoading] = useState(false);
@@ -118,77 +99,56 @@ export default function Home() {
     notes: "",
   });
 
-  const getSessionToken = useCallback(async () => {
-    const {
-      data: { session },
-    } = await supabase.auth.getSession();
-
-    if (!session?.access_token) {
-      throw new Error("You must be logged in to manage applications.");
-    }
-
-    return session.access_token;
-  }, [supabase]);
-
   useEffect(() => {
     const checkSession = async () => {
-      const {
-        data: { session },
-      } = await supabase.auth.getSession();
+      const { user: currentUser, warning } =
+        await applicationDataService.getCurrentUser();
 
-      setUser(session?.user ?? null);
+      setUser(currentUser);
+      setAuthWarning(warning ?? "");
       setAuthLoading(false);
     };
 
     checkSession();
 
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
-      setUser(session?.user ?? null);
+    const subscription = applicationDataService.subscribeToAuthChanges(
+      ({ user: currentUser, warning }) => {
+        setUser(currentUser);
+        setAuthWarning(warning ?? "");
 
-      if (!session?.user) {
-        setApplications([]);
-        setEditingApplication(null);
-        setApplicationsLoading(false);
+        if (!currentUser) {
+          setApplications([]);
+          setEditingApplication(null);
+          setApplicationsLoading(false);
+        }
       }
-    });
+    );
 
     return () => subscription.unsubscribe();
-  }, [supabase]);
+  }, []);
 
-  // Load applications from the backend API after a user is signed in
+  // Load applications from Supabase when possible, otherwise from local storage.
   useEffect(() => {
-    if (authLoading || !user) return;
+    if (authLoading) return;
 
-    const abortController = new AbortController();
+    if (!user) return;
+
+    let shouldIgnore = false;
 
     const fetchApplications = async () => {
       try {
         setApplicationsLoading(true);
         setApiError("");
 
-        const token = await getSessionToken();
-        const response = await fetch("/api/applications", {
-          signal: abortController.signal,
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        });
+        const { applications: savedApplications, warning } =
+          await applicationDataService.loadApplications(user.id);
 
-        if (!response.ok) {
-          throw new Error(await getErrorMessage(response));
-        }
+        if (shouldIgnore) return;
 
-        const data = (await response.json()) as {
-          applications: Application[];
-        };
-
-        setApplications(data.applications);
+        setApplications(savedApplications);
+        setSyncWarning(warning ?? "");
       } catch (error) {
-        if (error instanceof DOMException && error.name === "AbortError") {
-          return;
-        }
+        if (shouldIgnore) return;
 
         setApiError(
           error instanceof Error
@@ -196,7 +156,7 @@ export default function Home() {
             : "Could not load applications."
         );
       } finally {
-        if (!abortController.signal.aborted) {
+        if (!shouldIgnore) {
           setApplicationsLoading(false);
         }
       }
@@ -204,24 +164,28 @@ export default function Home() {
 
     fetchApplications();
 
-    return () => abortController.abort();
-  }, [authLoading, getSessionToken, user]);
+    return () => {
+      shouldIgnore = true;
+    };
+  }, [authLoading, user]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     if (authActionLoading) return;
 
     setAuthError("");
+    setAuthWarning("");
     setAuthActionLoading(true);
 
     try {
-      const { error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      });
+      const { user: loggedInUser, warning } =
+        await applicationDataService.login(email, password);
 
-      if (error) {
-        setAuthError(error.message);
+      if (loggedInUser) {
+        setUser(loggedInUser);
+        setAuthWarning(warning ?? "");
+      } else if (warning) {
+        setAuthError(warning);
       }
     } catch (error) {
       setAuthError(
@@ -237,20 +201,46 @@ export default function Home() {
     if (authActionLoading) return;
 
     setAuthError("");
+    setAuthWarning("");
     setAuthActionLoading(true);
 
     try {
-      const { error } = await supabase.auth.signUp({
-        email,
-        password,
-      });
+      const { user: signedUpUser, warning } =
+        await applicationDataService.signup(email, password);
 
-      if (error) {
-        setAuthError(error.message);
+      if (signedUpUser) {
+        setUser(signedUpUser);
+        setAuthWarning(warning ?? "");
+      } else if (warning) {
+        setAuthError(warning);
       }
     } catch (error) {
       setAuthError(
         error instanceof Error ? error.message : "Could not create account."
+      );
+    } finally {
+      setAuthActionLoading(false);
+    }
+  };
+
+  const handleContinueAsGuest = async () => {
+    if (authActionLoading) return;
+
+    setAuthError("");
+    setAuthWarning("");
+    setAuthActionLoading(true);
+
+    try {
+      const { user: guestUser, warning } =
+        await applicationDataService.continueAsGuest();
+
+      if (guestUser) {
+        setUser(guestUser);
+        setAuthWarning(warning ?? "");
+      }
+    } catch (error) {
+      setAuthError(
+        error instanceof Error ? error.message : "Could not start local mode."
       );
     } finally {
       setAuthActionLoading(false);
@@ -263,10 +253,12 @@ export default function Home() {
     setLogoutLoading(true);
 
     try {
-      await supabase.auth.signOut();
+      await applicationDataService.logout();
       setUser(null);
       setApplications([]);
       setEditingApplication(null);
+      setAuthWarning("");
+      setSyncWarning("");
       setApplicationsLoading(false);
     } finally {
       setLogoutLoading(false);
@@ -290,7 +282,7 @@ export default function Home() {
   // Handle add application
   const handleAddApplication = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (addLoading) return;
+    if (addLoading || !user) return;
 
     // Validation
     if (!formData.company.trim() || !formData.role.trim()) {
@@ -302,29 +294,18 @@ export default function Home() {
       setAddLoading(true);
       setFormError("");
 
-      const token = await getSessionToken();
-      const response = await fetch("/api/applications", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify(formData),
-      });
-
-      if (!response.ok) {
-        throw new Error(await getErrorMessage(response));
-      }
-
-      const data = (await response.json()) as {
-        application: Application;
-      };
+      const { application, warning } =
+        await applicationDataService.createApplication(user.id, formData);
 
       // Add the application returned by the API to the list
-      setApplications((currentApplications) => [
-        data.application,
-        ...currentApplications,
-      ]);
+      if (application) {
+        setApplications((currentApplications) => [
+          application,
+          ...currentApplications,
+        ]);
+      }
+
+      setSyncWarning(warning ?? "");
 
       // Clear form
       setFormData({
@@ -347,27 +328,21 @@ export default function Home() {
 
   // Handle delete application
   const handleDeleteApplication = async (id: string) => {
-    if (deletingId) return;
+    if (deletingId || !user) return;
 
     try {
       setApiError("");
       setDeletingId(id);
 
-      const token = await getSessionToken();
-      const response = await fetch(`/api/applications/${id}`, {
-        method: "DELETE",
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
-
-      if (!response.ok) {
-        throw new Error(await getErrorMessage(response));
-      }
+      const { warning } = await applicationDataService.deleteApplication(
+        user.id,
+        id
+      );
 
       setApplications((currentApplications) =>
         currentApplications.filter((app) => app.id !== id)
       );
+      setSyncWarning(warning ?? "");
     } catch (error) {
       setApiError(
         error instanceof Error
@@ -381,39 +356,29 @@ export default function Home() {
 
   // Handle update application
   const handleUpdateApplication = async () => {
-    if (!editingApplication || editLoading) return;
+    if (!editingApplication || editLoading || !user) return;
 
     try {
       setEditLoading(true);
       setApiError("");
 
-      const token = await getSessionToken();
-      const response = await fetch(
-        `/api/applications/${editingApplication.id}`,
-        {
-          method: "PUT",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-          body: JSON.stringify(editingApplication),
-        }
-      );
+      const { application, warning } =
+        await applicationDataService.updateApplication(
+          user.id,
+          editingApplication
+        );
 
-      if (!response.ok) {
-        throw new Error(await getErrorMessage(response));
+      if (application) {
+        setApplications((currentApplications) =>
+          currentApplications.map((currentApplication) =>
+            currentApplication.id === application.id
+              ? application
+              : currentApplication
+          )
+        );
       }
 
-      const data = (await response.json()) as {
-        application: Application;
-      };
-
-      setApplications((currentApplications) =>
-        currentApplications.map((application) =>
-          application.id === data.application.id ? data.application : application
-        )
-      );
-
+      setSyncWarning(warning ?? "");
       setEditingApplication(null);
     } catch (error) {
       setFormError(
@@ -450,14 +415,6 @@ export default function Home() {
     interview: applications.filter((app) => app.status === "Interview").length,
     offer: applications.filter((app) => app.status === "Offer").length,
   };
-
-  const statusOptions = [
-    "Saved",
-    "Applied",
-    "Interview",
-    "Offer",
-    "Rejected",
-  ] as const;
 
   const getStatusStyles = (status: string) => {
     switch (status) {
@@ -524,6 +481,7 @@ export default function Home() {
                 onChange={(e) => {
                   setEmail(e.target.value);
                   setAuthError("");
+                  setAuthWarning("");
                 }}
                 placeholder="you@example.com"
                 required
@@ -543,6 +501,7 @@ export default function Home() {
                 onChange={(e) => {
                   setPassword(e.target.value);
                   setAuthError("");
+                  setAuthWarning("");
                 }}
                 placeholder="Enter your password"
                 required
@@ -559,6 +518,15 @@ export default function Home() {
               </p>
             )}
 
+            {authWarning && (
+              <p
+                className="rounded-xl border border-amber-300/20 bg-amber-300/10 px-3 py-2 text-sm font-medium text-amber-100"
+                role="status"
+              >
+                {authWarning}
+              </p>
+            )}
+
             <button
               type="submit"
               disabled={authLoading || authActionLoading}
@@ -571,9 +539,19 @@ export default function Home() {
           <button
             type="button"
             disabled={authLoading || authActionLoading}
+            onClick={handleContinueAsGuest}
+            className={`${secondaryButtonClasses} mt-4 w-full`}
+          >
+            Continue as Guest
+          </button>
+
+          <button
+            type="button"
+            disabled={authLoading || authActionLoading}
             onClick={() => {
               setAuthMode(isLogin ? "signup" : "login");
               setAuthError("");
+              setAuthWarning("");
             }}
             className="mt-5 w-full text-sm font-semibold text-cyan-300 transition duration-200 hover:text-cyan-200 hover:underline disabled:cursor-not-allowed disabled:opacity-60"
           >
@@ -615,6 +593,12 @@ export default function Home() {
           {logoutLoading ? "Logging out..." : "Log Out"}
         </button>
       </header>
+
+      {(authWarning || syncWarning) && (
+        <div className="mx-auto mb-6 max-w-6xl rounded-xl border border-amber-300/20 bg-amber-300/10 px-4 py-3 text-sm font-medium text-amber-100">
+          {[authWarning, syncWarning].filter(Boolean).join(" ")}
+        </div>
+      )}
 
       {/* Stats Cards */}
       <section

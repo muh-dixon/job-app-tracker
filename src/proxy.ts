@@ -6,6 +6,13 @@ export async function proxy(request: NextRequest) {
     request,
   });
 
+  if (
+    !process.env.NEXT_PUBLIC_SUPABASE_URL ||
+    !process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY
+  ) {
+    return response;
+  }
+
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!,
@@ -24,9 +31,17 @@ export async function proxy(request: NextRequest) {
     }
   );
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  let user = null;
+
+  try {
+    const {
+      data: { user: authenticatedUser },
+    } = await supabase.auth.getUser();
+
+    user = authenticatedUser;
+  } catch {
+    return response;
+  }
 
   const isAuthScreen = request.nextUrl.searchParams.get("auth") === "login";
 

@@ -1,17 +1,27 @@
-# CareerTrack-v1
+# CareerTrack
 
 [![CI](https://github.com/muh-dixon/job-app-tracker/actions/workflows/ci.yml/badge.svg)](https://github.com/muh-dixon/job-app-tracker/actions/workflows/ci.yml)
 
-CareerTrack-v1 is a full-stack job application tracking dashboard built with Next.js, React, TypeScript, Tailwind CSS, and Supabase. It helps job seekers organize applications, interviews, notes, job links, and progress through a responsive dashboard interface.
+A full-stack job application tracking platform built with Next.js, TypeScript,
+Supabase, PostgreSQL, and GitHub Actions.
+
+CareerTrack helps job seekers manage applications, interviews, notes, job links,
+and hiring progress while demonstrating authenticated CRUD workflows, protected
+API routes, user-scoped data access, automated testing, CI validation, and
+production deployment.
 
 **Live Demo:** https://job-app-tracker-aar6em2ac-shabils-projects-6e585193.vercel.app/?auth=login  
 **Repository:** https://github.com/muh-dixon/job-app-tracker
 
 ## Project Overview
 
-CareerTrack-v1 was built as a practical job-search workflow tool and portfolio project. The app includes authentication, protected data access, CRUD operations, dashboard metrics, and a mobile-responsive UI for tracking applications throughout the hiring process.
+I built CareerTrack to solve a problem I experienced during my own job search:
+keeping application details, statuses, interview progress, notes, and job links
+organized across multiple platforms.
 
-The project also includes frontend performance and accessibility work based on Lighthouse audits, with improvements focused on semantic HTML, stable auth-loading rendering, reduced layout shift, and production build validation through GitHub Actions.
+The project became a practical way to deepen my understanding of full-stack
+architecture, authentication, authorization, database security, testing, and
+deployment.
 
 ## Screenshots
 
@@ -100,7 +110,7 @@ Optimization work included:
 - Reserved consistent layout space for loading and dynamic UI states
 - Preserved the dashboard visual design while improving frontend stability
 
-## CI/CD Pipeline
+## Development & Delivery Pipeline
 
 The repository includes a GitHub Actions workflow that runs on pushes to `main` and on pull requests.
 
@@ -230,15 +240,21 @@ NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY
 SUPABASE_SERVICE_ROLE_KEY
 ```
 
-## Future Improvements
+## Security Considerations
 
-- Add follow-up reminders and interview dates
-- Add sorting by company, date created, and status
-- Add richer analytics for application pipeline progress
-- Add CSV export for application records
-- Add dashboard interaction tests for editing, filtering, and deleting applications
-- Add automated API route tests for backend behavior and authorization
-- Add a dedicated documentation section for Lighthouse reports and CI screenshots
+CareerTrack includes several security-focused design decisions:
+
+- User authentication through Supabase Auth
+- Application data scoped to the authenticated user
+- Row Level Security policies for database access
+- Protected API routes with authenticated user validation
+- Service-role credentials restricted to server-side use
+- Environment variables excluded from version control
+- Input validation before database updates
+- Bearer-token handling for authenticated API requests
+
+Future security improvements include dependency scanning, automated vulnerability
+checks, stronger API authorization testing, and security-focused CI validation.
 
 ## Author
 
